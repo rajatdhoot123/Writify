@@ -2,10 +2,9 @@
   "name": "chrome-extension-boilerplate-react-vite",
   "version": "0.0.1",
   "description": "chrome extension boilerplate",
-  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite.git"
+    "url": "https://github.com/rajatdhoot123/chrome-extension-boilerplate.git"
   },
   "scripts": {
     "build": "tsc --noEmit && vite build",
@@ -75,6 +74,7 @@
     "vitest": "^1.2.2",
     "ws": "8.14.2"
   },
+  "packageManager": "pnpm@9.0.4",
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "prettier --write",

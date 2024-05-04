@@ -62,9 +62,9 @@ const setTokens = async (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, t
     // at this point user is logged-in to the web app
     // url should look like this: https://my.webapp.com/#access_token=zI1NiIsInR5c&expires_in=3600&provider_token=ya29.a0AVelGEwL6L&refresh_token=GEBzW2vz0q0s2pww&token_type=bearer
     // parse access_token and refresh_token from query string params
-    if (url.origin === 'http://localhost:3000') {
-      const splitUrl = tab.url?.split('#')[1];
-      const params = new URLSearchParams(splitUrl);
+
+    if (url.origin === import.meta.env.VITE_AUTH_HOST) {
+      const params = url.searchParams;
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
 
@@ -95,7 +95,6 @@ const GOOGLE_ORIGIN = 'https://www.google.com';
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(error => console.error(error));
 
 chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
-  console.log('');
   if (!tab.url) return;
   const url = new URL(tab.url);
   // Enables the side panel on google.com

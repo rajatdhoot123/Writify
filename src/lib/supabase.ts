@@ -21,7 +21,7 @@ export async function signIn() {
   // tell background service worker to create a new tab with that url
   await chrome.runtime.sendMessage({
     action: 'signUpWithWeb',
-    payload: { url: 'http://localhost:3000/login?source=extension' }, // url is something like: https://[project_id].supabase.co/auth/v1/authorize?provider=google
+    payload: { url: `${import.meta.env.VITE_AUTH_HOST}/extension/login?source=extension` }, // url is something like: https://[project_id].supabase.co/auth/v1/authorize?provider=google
   });
 }
 
