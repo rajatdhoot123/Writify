@@ -12,9 +12,9 @@ const manifest = {
    * if you want to support multiple languages, you can use the following reference
    * https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Internationalization
    */
-  name: '__MSG_extensionName__',
+  name: 'launchify',
   version: packageJson.version,
-  description: '__MSG_extensionDescription__',
+  description: 'Launchify drag and drop builder for nextjs and react',
   permissions: ['storage', 'sidePanel', 'tabs'],
   side_panel: {
     default_path: 'src/pages/sidepanel/index.html',
@@ -36,13 +36,15 @@ const manifest = {
   },
   content_scripts: [
     {
-      matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+      // matches: ['http://*/*', 'https://*/*', '<all_urls>'], For all urls
+      matches: ['https://*.launchify.club/*'],
       js: ['src/pages/contentInjected/index.js'],
       // KEY for cache invalidation
       css: ['assets/css/contentStyle<KEY>.chunk.css'],
     },
     {
-      matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+      // matches: ['http://*/*', 'https://*/*', '<all_urls>'], For all urls
+      matches: ['https://*.launchify.club/*'],
       js: ['src/pages/contentUI/index.js'],
     },
   ],

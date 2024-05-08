@@ -89,26 +89,28 @@ const setTokens = async (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, t
   }
 };
 
-const GOOGLE_ORIGIN = 'https://www.google.com';
+const SIDEBAR_ORIGIN = 'https://www.launchify.club';
 
 // Allows users to open the side panel by clicking on the action toolbar icon
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(error => console.error(error));
 
-chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
-  if (!tab.url) return;
-  const url = new URL(tab.url);
-  // Enables the side panel on google.com
-  if (url.origin === GOOGLE_ORIGIN) {
-    await chrome.sidePanel.setOptions({
-      tabId,
-      path: 'src/pages/sidepanel/index.html',
-      enabled: true,
-    });
-  } else {
-    // Disables the side panel on all other sites
-    await chrome.sidePanel.setOptions({
-      tabId,
-      enabled: false,
-    });
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url) {
+    const url = new URL(tab.url);
+
+    // Check if the tab URL matches 'launchify.club' to enable the side panel
+    if (url.origin === SIDEBAR_ORIGIN) {
+      await chrome.sidePanel.setOptions({
+        tabId,
+        path: 'src/pages/sidepanel/index.html',
+        enabled: true,
+      });
+    } else {
+      // Disables the side panel on all other sites
+      await chrome.sidePanel.setOptions({
+        tabId,
+        enabled: false,
+      });
+    }
   }
 });
