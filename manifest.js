@@ -12,9 +12,9 @@ const manifest = {
    * if you want to support multiple languages, you can use the following reference
    * https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Internationalization
    */
-  name: 'launchify',
+  name: 'Tweetify',
   version: packageJson.version,
-  description: 'Launchify drag and drop builder for nextjs and react',
+  description: 'Tweetify is a browser extension that helps you to write tweets in a better way.',
   permissions: ['storage', 'sidePanel', 'tabs'],
   side_panel: {
     default_path: 'src/pages/sidepanel/index.html',
@@ -37,14 +37,14 @@ const manifest = {
   content_scripts: [
     {
       // matches: ['http://*/*', 'https://*/*', '<all_urls>'], For all urls
-      matches: ['https://*.launchify.club/*'],
+      matches: ['https://*.launchify.club/*', 'https://*.twitter.com/*'],
       js: ['src/pages/contentInjected/index.js'],
       // KEY for cache invalidation
       css: ['assets/css/contentStyle<KEY>.chunk.css'],
     },
     {
       // matches: ['http://*/*', 'https://*/*', '<all_urls>'], For all urls
-      matches: ['https://*.launchify.club/*'],
+      matches: ['https://*.launchify.club/*', 'https://*.twitter.com/*'],
       js: ['src/pages/contentUI/index.js'],
     },
   ],

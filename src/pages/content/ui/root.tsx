@@ -6,10 +6,13 @@ import injectedStyle from './injected.css?inline';
 refreshOnUpdate('pages/content');
 
 const root = document.createElement('div');
-root.id = 'chrome-extension-boilerplate-react-vite-content-view-root';
+root.id = 'launcify-extension-root';
 
-document.body.append(root);
-
+root.style.zIndex = '9999';
+root.style.position = 'fixed';
+root.style.top = '34px';
+root.style.right = '34px';
+document.body.appendChild(root);
 const rootIntoShadow = document.createElement('div');
 rootIntoShadow.id = 'shadow-root';
 
