@@ -89,7 +89,7 @@ const setTokens = async (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, t
   }
 };
 
-const SIDEBAR_ORIGIN = 'https://www.launchify.club';
+const SIDEBAR_ORIGIN = 'https://twitter.com/home';
 
 // Allows users to open the side panel by clicking on the action toolbar icon
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(error => console.error(error));

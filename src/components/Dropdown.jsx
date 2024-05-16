@@ -4,27 +4,60 @@ import React from 'react';
 const Dropdown = ({ activePrompt, promptList, dispatch }) => {
   return (
     <>
-      <div className="relative inline-block w-64">
-        <select
-          onChange={e => {
-            dispatch({ type: 'SET_ACTIVE_PROMPT', payload: e.target.value });
+      <select
+        onChange={e => {
+          dispatch({ type: 'SET_ACTIVE_PROMPT', payload: e.target.value });
+        }}
+        value={activePrompt}
+        style={{
+          flex: "1",
+          height: '36px',
+          cursor: 'pointer',
+          color: 'rgb(29, 161, 242)',
+          fontSize: ' 12px',
+          fontWeight: '700',
+          fontFamily:
+            'TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          borderWidth: '1px',
+          borderStyle: 'solid',
+          borderColor: 'rgb(29, 161, 242)',
+          borderImage: 'initial',
+          borderRadius: '9999px',
+          padding: '3px 14px',
+        }}>
+        {promptList.map(prompt => (
+          <option value={prompt.value} key={prompt.value}>
+            {prompt.label}
+          </option>
+        ))}
+      </select>
+      <div
+        style={{
+          pointerEvents: 'none',
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          right: '0.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          paddingLeft: '0.5rem',
+          color: '#4a5568',
+          transition: 'transform 0.3s', // Add smooth transition
+        }}>
+        <svg
+          style={{
+            fill: 'currentColor',
+            height: '1rem',
+            width: '1rem',
+            transform: 'rotate(0deg)',
+            transition: 'transform 0.3s',
           }}
-          value={activePrompt}
-          className="block w-full appearance-none bg-gray-100 border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
-          {promptList.map((prompt, index) => (
-            <option value={index} key={prompt}>
-              {prompt}
-            </option>
-          ))}
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-            <path d="M7 10l5 5 5-5H7z" />
-          </svg>
-        </div>
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20">
+          <path d="M7 10l5 5 5-5H7z" />
+        </svg>
       </div>
     </>
   );
 };
-
 export default Dropdown;
