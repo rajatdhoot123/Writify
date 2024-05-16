@@ -10,6 +10,7 @@ const Dropdown = ({ activePrompt, promptList, dispatch }) => {
         }}
         value={activePrompt}
         style={{
+          flex: "1",
           height: '36px',
           cursor: 'pointer',
           color: 'rgb(29, 161, 242)',

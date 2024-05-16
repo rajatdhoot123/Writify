@@ -5,6 +5,39 @@ import injectedStyle from './injected.css?inline';
 
 refreshOnUpdate('pages/content');
 
+function addStyle(styleString) {
+  const style = document.createElement('style');
+  style.textContent = styleString;
+  document.head.append(style);
+}
+
+// Add the scoped styles
+const styles = `
+.twittity {
+  .custom-loader {
+    display: flex;
+    margin-right: 0.5rem;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .custom-loader-svg {
+    width: 1rem;
+    height: 1rem;
+    color: #e5e7eb; /* text-gray-200 */
+    animation: spin 1s linear infinite; /* animate-spin */
+    fill: #2563eb; /* fill-blue-600 */
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+}
+  `;
+
+addStyle(styles);
+
 const root = document.createElement('div');
 root.id = 'launcify-extension-root';
 

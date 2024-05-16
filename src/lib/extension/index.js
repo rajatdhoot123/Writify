@@ -48,3 +48,23 @@ export function waitForElm(selector) {
     });
   });
 }
+
+export const findClosest = (element, selector) => {
+  let currentElement = element;
+  while (currentElement.parentNode && !currentElement.querySelector(selector)) {
+    currentElement = currentElement.parentNode;
+  }
+  return currentElement.querySelector(selector);
+};
+
+export function clearContent(element) {
+  if (element.contentEditable === 'true') {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    const event = new KeyboardEvent('keydown', { key: 'Delete', bubbles: true });
+    element.dispatchEvent(event);
+  }
+}

@@ -36,12 +36,14 @@ const PromptList = ({ dispatch, activePrompt, promptList = [] }) => {
         <div className="flex mb-4">
           <div className="space-y-2">
             <input
+              required
               name="alias"
               type="text"
               className="flex-1 p-2 border border-gray-300 rounded-l-lg w-full rounded-md"
               placeholder="Prompt Alias"
             />
             <textarea
+              required
               name="newItem"
               type="text"
               className="flex-1 p-2 border border-gray-300 rounded-l-lg w-full rounded-md"
