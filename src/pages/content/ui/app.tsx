@@ -303,10 +303,12 @@ export default function NewApp() {
       const contentEditable = findClosest(document.getElementById('ai-tweet-button'), '[contenteditable="true"]');
 
       if (contentEditable) {
+        contentEditable.focus();
         setTimeout(() => {
           clearContent(contentEditable);
+          // Dispatch an input event to simulate user input
           contentEditable.dispatchEvent(new InputEvent('textInput', { data: response.content, bubbles: true }));
-        }, 100);
+        }, 200);
       }
       // document.querySelector('[data-text]').textContent = response.content;
       // document.querySelector('[data-text]').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));

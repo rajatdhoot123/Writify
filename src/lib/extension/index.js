@@ -57,6 +57,17 @@ export const findClosest = (element, selector) => {
   return currentElement.querySelector(selector);
 };
 
+export function clearChildText(children) {
+  for (let i = 0; i < children.length; i++) {
+    children[i].textContent = '';
+  }
+  // let deleteEvent = new KeyboardEvent('keydown', {
+  //   key: 'Delete',
+  //   bubbles: true,
+  // });
+  // parentElement.dispatchEvent(deleteEvent);
+}
+
 export function clearContent(element) {
   if (element.contentEditable === 'true') {
     const range = document.createRange();
@@ -64,7 +75,18 @@ export function clearContent(element) {
     const selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
+
+    // Ensure the element is focused to receive the key event
+    element.focus();
+
+    // Create a keyboard event and dispatch it
     const event = new KeyboardEvent('keydown', { key: 'Delete', bubbles: true });
+
+    // For older browsers
+    if (typeof event.initKeyboardEvent === 'function') {
+      event.initKeyboardEvent('keydown', true, true, window, 'Delete', 0, '', false, '');
+    }
+
     element.dispatchEvent(event);
   }
 }
