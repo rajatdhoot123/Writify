@@ -5,12 +5,71 @@
 import { getCurrentUser } from '@root/src/lib/supabase';
 import Dropdown from '@root/src/components/Dropdown';
 import TweetConfig from '@root/src/components/TweetConfig';
-import { useCallback, useEffect, useReducer, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { createPortal } from 'react-dom';
+import { actionTypes } from '../../../constant/actionTypes';
+import { findButtonsByText, findDivsByText, findClosestParent, waitForElm } from '@root/src/lib/extension';
+import { act } from 'react-dom/test-utils';
+
+const AiTweetToolbar = ({ dispatch, state, handleGenerateAiTweet }) => {
+  return (
+    <div
+      style={{
+        marginTop: '1rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '5',
+      }}>
+      <Dropdown dispatch={dispatch} promptList={state.promptList} activePrompt={state.activePrompt} />
+      <button
+        onClick={handleGenerateAiTweet}
+        style={{
+          fontFamily:
+            'TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          backgroundColor: 'rgb(29, 161, 242)',
+          cursor: 'pointer',
+          color: 'white',
+          height: '36px',
+          paddingLeft: '16px',
+          paddingRight: '16px',
+          fontSize: '15px',
+          fontWeight: 'bold',
+          float: 'right',
+          borderWidth: 'initial',
+          borderStyle: 'none',
+          borderColor: 'initial',
+          borderImage: 'initial',
+          borderRadius: '25px',
+        }}
+        onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) =>
+          ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(18, 129, 201)')
+        }
+        onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) =>
+          ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(29, 155, 240)')
+        }
+        onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) =>
+          ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(14, 106, 166)')
+        }
+        onMouseUp={(e: React.MouseEvent<HTMLButtonElement>) => {
+          const target = e.target as HTMLButtonElement;
+          target.style.backgroundColor = 'rgb(29, 155, 240)';
+        }}>
+        Generate AI Tweet
+      </button>
+    </div>
+  );
+};
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'SET_OPENAI_KEY':
+      return {
+        ...state,
+        openAiKey: action.payload,
+      };
     case 'SET_CONFIG_TOGGLE':
       return {
         ...state,
@@ -175,7 +234,7 @@ const SuggestionModal = ({
         <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
           <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
             <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-              <div className='my-2'>
+              <div className="my-2">
                 <Dropdown dispatch={dispatch} promptList={promptList} activePrompt={activePrompt} />
               </div>
               {loader && (
@@ -261,8 +320,15 @@ function updateTwitterTextbox(newText) {
   }
 }
 
-export default function App() {
-  const [state, dispatch] = useReducer(reducer, { promptList: [], activePrompt: 0, user: {} });
+function App() {
+  const [state, dispatch] = useReducer(reducer, {
+    promptList: [
+      { value: 'general', label: 'Your are tweet expert' },
+      { value: 'genera2', label: 'Your are tweet export' },
+    ],
+    activePrompt: 'general',
+    user: {},
+  });
   const [open_ai_key, set_open_ai_key] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [inputText, setInputText] = useState('');
@@ -273,6 +339,15 @@ export default function App() {
       set_open_ai_key('');
     });
   };
+
+  const chatModel = useCallback(
+    () => {
+      return new ChatOpenAI({
+        apiKey: import.meta.env.VITE_OPENAI_API_KEY || open_ai_key,
+      });
+    },
+    [open_ai_key], // Add an empty array as the second argument
+  );
 
   useEffect(() => {
     if (!open_ai_key) {
@@ -304,6 +379,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    window?.navigation?.addEventListener('navigate', event => {
+      if (event.canIntercept) {
+        // const url = new URL(event.destination.url);
+        document.getElementById('prepend-portal-continer')?.remove();
+        // console.log(url.href);
+      }
+    });
+
+    return () => {
+      window?.navigation?.removeEventListener('navigate', event => {
+        if (event.canIntercept) {
+          // const url = new URL(event.destination.url);
+          document.getElementById('prepend-portal-continer')?.remove();
+          // console.log(url.href);
+        }
+      });
+    };
+  }, []);
+
+  useEffect(() => {
     chrome?.storage?.sync?.get(['promptList'], data => {
       if (data.promptList) {
         dispatch({ type: 'SET_PROMPT_LIST', payload: data.promptList });
@@ -319,17 +414,90 @@ export default function App() {
     dispatch({ type: 'SET_CONFIG_TOGGLE' });
   };
 
-  if (!inputText) {
-    return null;
-  }
+  const handleGenerateAiTweet = async () => {
+    const twitterPrompt = ChatPromptTemplate.fromMessages([
+      [
+        'system',
+        'You are a social media expert skilled in creating engaging and shareable content. Your task is to take the following user-provided tweet and rewrite it to maximize engagement. Engagement includes likes, retweets, comments, and shares. Use a compelling tone, add relevant hashtags, and incorporate a call-to-action where appropriate. Ensure the tweet is clear, concise, and attention-grabbing',
+      ],
+      ['user', '{input}'],
+    ]);
+    const chain = twitterPrompt.pipe(chatModel);
+    const response = await chain.invoke({
+      input: inputText,
+    });
 
-  console.log(state);
+    document.querySelector('[data-text]').textContent = response.content;
+    document.querySelector('[data-text]').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+    console.log(response.content);
+  };
+
   return (
     <div>
+      {/* <Portal
+        id="prepend-portal-continer"
+        el={
+          [...document.querySelectorAll('div[role="tablist"]')]
+            .map((el: HTMLElement) => {
+              if (el.children.length > 5) {
+                return el;
+              } else {
+                return null;
+              }
+            })
+            .filter(Boolean)[0]
+            .closest('div') as HTMLElement
+        }>
+        <div
+          style={{
+            marginTop: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '5',
+          }}>
+          <Dropdown dispatch={dispatch} promptList={state.promptList} activePrompt={state.activePrompt} />
+          <button
+            onClick={handleGenerateAiTweet}
+            style={{
+              fontFamily:
+                'TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+              backgroundColor: 'rgb(29, 161, 242)',
+              cursor: 'pointer',
+              color: 'white',
+              height: '36px',
+              paddingLeft: '16px',
+              paddingRight: '16px',
+              fontSize: '15px',
+              fontWeight: 'bold',
+              float: 'right',
+              borderWidth: 'initial',
+              borderStyle: 'none',
+              borderColor: 'initial',
+              borderImage: 'initial',
+              borderRadius: '25px',
+            }}
+            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) =>
+              ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(18, 129, 201)')
+            }
+            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) =>
+              ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(29, 155, 240)')
+            }
+            onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) =>
+              ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(14, 106, 166)')
+            }
+            onMouseUp={(e: React.MouseEvent<HTMLButtonElement>) => {
+              const target = e.target as HTMLButtonElement;
+              target.style.backgroundColor = 'rgb(29, 155, 240)';
+            }}>
+            Generate AI Tweet
+          </button>
+        </div>
+      </Portal> */}
       <div>
-        <button className="bg-indigo-500 text-white rounded-md px-2 py-1 ml-2" onClick={handleCopy}>
+        {/* <button className="bg-indigo-500 text-white rounded-md px-2 py-1 ml-2" onClick={handleCopy}>
           AI tweet
-        </button>
+        </button> */}
         <button onClick={handleConfig} className="bg-indigo-500 text-white rounded-md px-2 py-1 ml-2">
           Config
         </button>
@@ -356,6 +524,146 @@ export default function App() {
           handleResetOpenAi={handleResetOpenAi}
         />
       )}
+    </div>
+  );
+}
+
+export default function NewApp() {
+  const [loader, setLoader] = useState(false);
+
+  const [state, dispatch] = useReducer(reducer, {
+    openAiKey: '',
+    promptList: [
+      { value: 'general', label: 'Your are tweet expert' },
+      { value: 'genera2', label: 'Your are tweet export' },
+    ],
+    activePrompt: 'general',
+    user: {},
+  });
+  const [activeUrl, setActiveUrl] = useState(document.location.href);
+  const [containerRef, setContainerRef] = useState(null);
+  const [inputText, setInputText] = useState('');
+
+  const chatModel = useCallback(
+    () => {
+      return new ChatOpenAI({
+        apiKey: import.meta.env.VITE_OPENAI_API_KEY || state.openAiKey,
+      });
+    },
+    [state.openAiKey], // Add an empty array as the second argument
+  );
+
+  useEffect(() => {
+    if (!state.openAiKey) {
+      chrome?.storage?.sync.get(/* String or Array */ ['open_ai_key'], function (items) {
+        dispatch({ payload: items.open_ai_key, type: 'SET_OPENAI_KEY' });
+      });
+    }
+  }, [state.openAiKey]);
+
+  useEffect(() => {
+    document.addEventListener('input', function (e) {
+      if ((e.target as HTMLElement).getAttribute('role') === 'textbox') {
+        const text = (e.target as HTMLElement).textContent;
+        // Process the text and prepare suggestions
+        setInputText(text);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    const observeUrlChange = () => {
+      let oldHref = document.location.href;
+      const body = document.querySelector('body');
+      const observer = new MutationObserver(mutations => {
+        if (oldHref !== document.location.href) {
+          oldHref = document.location.href;
+          setActiveUrl(oldHref);
+        }
+      });
+      observer.observe(body, { childList: true, subtree: true });
+    };
+    observeUrlChange();
+  }, []);
+
+  useEffect(() => {
+    const toolSuit_id = `tweetify-app-suit`;
+
+    (async () => {
+      if (activeUrl.includes('/compose')) {
+        await waitForElm('[data-testid="unsentButton"]');
+      }
+      for (const [postType, requestType] of Object.entries(actionTypes)) {
+        let tweetBoxes = findDivsByText(postType);
+        if (window.location.host === 'pro.twitter.com') {
+          tweetBoxes = findButtonsByText(postType);
+        }
+
+        if (tweetBoxes) {
+          console.log(tweetBoxes, activeUrl);
+          tweetBoxes.forEach(async tweetBox => {
+            if (tweetBox) {
+              let toolbar = tweetBox.closest('[data-testid="toolBar"]');
+
+              if (!toolbar) {
+                toolbar = findClosestParent(tweetBox, '[data-testid="toolBar"]');
+              }
+
+              if (toolbar && !toolbar.parentNode.querySelector(`#${toolSuit_id}`)) {
+                const toolSuit = document.createElement('div');
+                toolSuit.id = toolSuit_id;
+
+                toolbar.parentNode.prepend(toolSuit);
+                setContainerRef(toolSuit);
+                // const toolbarElement = createToolbarElement(requestType, postType, isTweet, toneTypes, inspirationTypes);
+                // toolbarElement.querySelector('button').addEventListener('click', async event => {
+                // await handleInspireButtonClick(event, requestType, isTweet, postType);
+                // });
+              }
+            }
+          });
+        }
+      }
+    })();
+
+    return () => {
+      if (activeUrl.includes('/compose') || activeUrl.includes('/status')) {
+        document.getElementById(toolSuit_id)?.remove();
+      }
+    };
+  }, [activeUrl]);
+
+  const handleGenerateAiTweet = async () => {
+    const twitterPrompt = ChatPromptTemplate.fromMessages([
+      [
+        'system',
+        'You are a social media expert skilled in creating engaging and shareable content. Your task is to take the following user-provided tweet and rewrite it to maximize engagement. Engagement includes likes, retweets, comments, and shares. Use a compelling tone, add relevant hashtags, and incorporate a call-to-action where appropriate. Ensure the tweet is clear, concise, and attention-grabbing',
+      ],
+      ['user', '{input}'],
+    ]);
+    const chain = twitterPrompt.pipe(chatModel);
+    const response = await chain.invoke({
+      input: inputText,
+    });
+
+    document.querySelector('[data-text]').textContent = response.content;
+    document.querySelector('[data-text]').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+    console.log(response.content);
+  };
+
+  return (
+    <div>
+      {containerRef &&
+        createPortal(
+          <AiTweetToolbar dispatch={dispatch} state={state} handleGenerateAiTweet={handleGenerateAiTweet} />,
+          containerRef as Element | DocumentFragment, // Add type assertion here
+        )}
+      {/* {Object.entries(containerRef).map(([key, value]) => {
+        return createPortal(
+          <AiTweetToolbar dispatch={dispatch} state={state} handleGenerateAiTweet={handleGenerateAiTweet} />,
+          value as Element | DocumentFragment, // Add type assertion here
+        );
+      })} */}
     </div>
   );
 }

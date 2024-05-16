@@ -6,14 +6,14 @@ import React from 'react';
 // eslint-disable-next-line react/prop-types
 const PromptList = ({ dispatch, activePrompt, promptList = [] }) => {
   const addItem = newItem => {
-    if (newItem.trim() !== '') {
+    if (newItem.value.trim() !== '' && newItem.label.trim() !== '') {
       dispatch({ type: 'SET_PROMPT_LIST', payload: [...promptList, newItem] });
       chrome?.storage?.sync?.set({ promptList: [...promptList, newItem] });
     }
   };
 
-  const deleteItem = index => {
-    const updatedItems = promptList.filter((_, i) => i !== index);
+  const deleteItem = value => {
+    const updatedItems = promptList.filter(prompt => prompt.value !== value);
     dispatch({ type: 'SET_PROMPT_LIST', payload: updatedItems });
     chrome?.storage?.sync?.set({ promptList: updatedItems });
   };
@@ -25,7 +25,7 @@ const PromptList = ({ dispatch, activePrompt, promptList = [] }) => {
     for (let [key, value] of formData.entries()) {
       data[key] = value;
     }
-    addItem(data.newItem);
+    addItem({ label: data.newItem, value: data.alias });
     e.currentTarget.reset();
   };
 
@@ -34,27 +34,34 @@ const PromptList = ({ dispatch, activePrompt, promptList = [] }) => {
       <h1 className="text-2xl font-bold mb-4">Twitter AI Prompts</h1>
       <form onSubmit={handleSubmit}>
         <div className="flex mb-4">
-          <textarea
-            name="newItem"
-            type="text"
-            minLength={6}
-            className="flex-1 p-2 border border-gray-300 rounded-l-lg"
-            placeholder="Add a new item"
-          />
+          <div className="space-y-2">
+            <input
+              name="alias"
+              type="text"
+              className="flex-1 p-2 border border-gray-300 rounded-l-lg w-full rounded-md"
+              placeholder="Prompt Alias"
+            />
+            <textarea
+              name="newItem"
+              type="text"
+              className="flex-1 p-2 border border-gray-300 rounded-l-lg w-full rounded-md"
+              placeholder="Add a new item"
+            />
+          </div>
         </div>
         <button type="submit" className="p-2 bg-blue-500 text-white rounded-md w-full">
           Add
         </button>
       </form>
       <ul className="mt-5">
-        {promptList.map((item, index) => (
+        {promptList.map(item => (
           <li
-            onClick={() => dispatch({ type: 'SET_ACTIVE_PROMPT', payload: index })}
-            key={index}
-            className={`flex cursor-pointer justify-between items-center p-2 break-normal ${activePrompt === index ? 'border-blue-300 border rounded-md' : 'border-gray-200 border-b'}`}>
-            <p className="break-all">{item}</p>
+            onClick={() => dispatch({ type: 'SET_ACTIVE_PROMPT', payload: item.value })}
+            key={item.value}
+            className={`flex cursor-pointer justify-between items-center p-2 break-normal ${activePrompt === item.value ? 'border-blue-300 border rounded-md' : 'border-gray-200 border-b'}`}>
+            <p className="break-all">{item.label}</p>
             {promptList.length > 1 && (
-              <button onClick={() => deleteItem(index)} className="text-gray-500">
+              <button onClick={() => deleteItem(item.value)} className="text-gray-500">
                 <svg
                   className="h-6 w-6"
                   stroke="currentColor"
