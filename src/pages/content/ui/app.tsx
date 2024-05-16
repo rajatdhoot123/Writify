@@ -134,6 +134,7 @@ const AiTweetToolbar = ({ dispatch, state, handleGenerateAiTweet, loader, handle
 };
 
 function reducer(state, action) {
+  console.log(action.type);
   switch (action.type) {
     case 'SET_OPEN_AI_KEY':
       return {
@@ -161,7 +162,6 @@ function reducer(state, action) {
         user: action.payload,
       };
   }
-  // ...
 }
 
 export default function NewApp() {
@@ -170,8 +170,10 @@ export default function NewApp() {
   const [state, dispatch] = useReducer(reducer, {
     openAiKey: '',
     promptList: [
-      { value: 'general', label: 'Your are tweet expert' },
-      { value: 'genera2', label: 'Your are tweet export' },
+      {
+        value: 'general',
+        label: `You are a social media expert specializing in maximizing engagement on Twitter. Your task is to help improve the given tweet by making it more engaging, attention-grabbing, and shareable. Consider using compelling language, relevant hashtags, and a clear call-to-action. Ensure the tweet remains concise and within Twitter's character limit. Here is the tweet to improve`,
+      },
     ],
     activePrompt: 'general',
     user: {},
@@ -199,7 +201,9 @@ export default function NewApp() {
     if (!state.openAiKey) {
       chrome?.storage?.sync.get(/* String or Array */ ['open_ai_key', 'promptList'], function (items) {
         dispatch({ payload: items.open_ai_key || '', type: 'SET_OPEN_AI_KEY' });
-        dispatch({ payload: items.promptList || '', type: 'SET_PROMPT_LIST' });
+        if (items.promptList) {
+          dispatch({ payload: items.promptList || '', type: 'SET_PROMPT_LIST' });
+        }
       });
     }
   }, [state.openAiKey]);
@@ -288,10 +292,7 @@ export default function NewApp() {
     setLoader(true);
     try {
       const twitterPrompt = ChatPromptTemplate.fromMessages([
-        [
-          'system',
-          'You are a social media expert skilled in creating engaging and shareable content. Your task is to take the following user-provided tweet and rewrite it to maximize engagement. Engagement includes likes, retweets, comments, and shares. Use a compelling tone, add relevant hashtags, and incorporate a call-to-action where appropriate. Ensure the tweet is clear, concise, and attention-grabbing',
-        ],
+        ['system', state.promptList.find(prompt => prompt.value === state.activePrompt).label],
         ['user', '{input}'],
       ]);
       const chain = twitterPrompt.pipe(chatModel);
