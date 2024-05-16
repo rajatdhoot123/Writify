@@ -3,7 +3,7 @@
 /* eslint-disable react/prop-types */
 import PromptList from './PromptList';
 
-const TweetConfig = ({ dispatch, activePrompt, promptList, toggleModal, handleResetOpenAi }) => {
+const TweetConfig = ({ dispatch, activePrompt, promptList, toggleModal, handleResetOpenAi, openAiKey }) => {
   return (
     <div
       onClick={e => e.stopPropagation()}
@@ -17,6 +17,7 @@ const TweetConfig = ({ dispatch, activePrompt, promptList, toggleModal, handleRe
           <div className="relative transform overflow-scroll rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 w-1/2 max-h-[50vh]">
             <div className="m-5">
               <PromptList
+                openAiKey={openAiKey}
                 handleResetOpenAi={handleResetOpenAi}
                 promptList={promptList}
                 activePrompt={activePrompt}

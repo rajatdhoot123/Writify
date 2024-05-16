@@ -4,7 +4,7 @@
 import React, { useRef } from 'react';
 
 // eslint-disable-next-line react/prop-types
-const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi }) => {
+const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi, openAiKey }) => {
   const openAiFormRef = useRef(null);
   const addItem = newItem => {
     if (newItem.value.trim() !== '' && newItem.label.trim() !== '') {
@@ -28,6 +28,20 @@ const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi
     }
     addItem({ label: data.newItem, value: data.alias });
     e.currentTarget.reset();
+  };
+
+  const handleOpenAiSubmit = e => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = { open_ai_key: '' };
+    for (const [key, value] of formData.entries()) {
+      data[key] = value;
+    }
+
+    chrome?.storage?.sync?.set(data, function () {
+      //  A data saved callback omg so fancy
+      dispatch({ type: 'SET_OPEN_AI_KEY', payload: data.open_ai_key });
+    });
   };
 
   return (
@@ -58,7 +72,7 @@ const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi
               Add
             </button>
           </form>
-          <form ref={openAiFormRef} onSubmit={handleSubmit}>
+          <form ref={openAiFormRef} onSubmit={handleOpenAiSubmit}>
             <div className="group w-full">
               <label
                 htmlFor="8"
@@ -67,6 +81,7 @@ const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi
               </label>
               <div className="relative flex items-center">
                 <input
+                  defaultValue={openAiKey}
                   name="open_ai_key"
                   id="8"
                   type="text"

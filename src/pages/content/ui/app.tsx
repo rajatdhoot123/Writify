@@ -334,6 +334,7 @@ export default function NewApp() {
       })}
       {state.isConfigOpen && (
         <TweetConfig
+          openAiKey={state.openAiKey}
           handleResetOpenAi={handleResetOpenAi}
           toggleModal={() => {
             dispatch({ type: 'SET_CONFIG_TOGGLE' });
