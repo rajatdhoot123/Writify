@@ -1,29 +1,33 @@
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
 /* eslint-disable react/prop-types */
 import PromptList from './PromptList';
 
-const TweetConfig = ({ dispatch, activePrompt, promptList }) => {
+const TweetConfig = ({ dispatch, activePrompt, promptList, toggleModal }) => {
   return (
-    <div className="fixed w-72 right-0 top-0 h-screen overflow-scroll bg-white p-5">
-      <button
-        onClick={() => {
-          dispatch({ type: 'SET_CONFIG_TOGGLE' });
-        }}
-        className="absolute right-4 top-4">
-        <svg
-          stroke="currentColor"
-          fill="currentColor"
-          className="h-6 w-6"
-          strokeWidth="0"
-          viewBox="0 0 512 512"
-          height="1em"
-          width="1em"
-          xmlns="http://www.w3.org/2000/svg">
-          <path d="m289.94 256 95-95A24 24 0 0 0 351 127l-95 95-95-95a24 24 0 0 0-34 34l95 95-95 95a24 24 0 1 0 34 34l95-95 95 95a24 24 0 0 0 34-34z"></path>
-        </svg>
-      </button>
-      <h1>Twitter Config</h1>
-      <div>
-        <PromptList promptList={promptList} activePrompt={activePrompt} dispatch={dispatch} />
+    <div
+      onClick={e => e.stopPropagation()}
+      className="relative z-[9999]"
+      aria-labelledby="modal-title"
+      role="dialog"
+      aria-modal="true">
+      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+      <div className="fixed inset-0 z-[9999] w-screen overflow-y-auto">
+        <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+          <div className="relative transform overflow-scroll rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 w-1/2 max-h-[50vh]">
+            <div className="m-5">
+              <PromptList promptList={promptList} activePrompt={activePrompt} dispatch={dispatch} />
+            </div>
+            <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+              <button
+                onClick={toggleModal}
+                type="button"
+                className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -10,7 +10,8 @@ const Dropdown = ({ activePrompt, promptList, dispatch }) => {
         }}
         value={activePrompt}
         style={{
-          flex: "1",
+          maxWidth: '240px',
+          flex: '1',
           height: '36px',
           cursor: 'pointer',
           color: 'rgb(29, 161, 242)',
@@ -27,7 +28,7 @@ const Dropdown = ({ activePrompt, promptList, dispatch }) => {
         }}>
         {promptList.map(prompt => (
           <option value={prompt.value} key={prompt.value}>
-            {prompt.label}
+            {prompt.value}
           </option>
         ))}
       </select>

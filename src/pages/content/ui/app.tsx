@@ -140,7 +140,6 @@ function reducer(state, action) {
         ...state,
         openAiModal: !state.openAiModal,
       };
-
     case 'SET_OPEN_AI_KEY':
       return {
         ...state,
@@ -282,8 +281,9 @@ export default function NewApp() {
 
   useEffect(() => {
     if (!state.openAiKey) {
-      chrome?.storage?.sync.get(/* String or Array */ ['open_ai_key'], function (items) {
+      chrome?.storage?.sync.get(/* String or Array */ ['open_ai_key', 'promptList'], function (items) {
         dispatch({ payload: items.open_ai_key || '', type: 'SET_OPEN_AI_KEY' });
+        dispatch({ payload: items.promptList || '', type: 'SET_PROMPT_LIST' });
       });
     }
   }, [state.openAiKey]);
@@ -383,7 +383,7 @@ export default function NewApp() {
         ['user', '{input}'],
       ]);
       const chain = twitterPrompt.pipe(chatModel);
-      const response = await chain.invoke({
+      const response: any = await chain.invoke({
         input: inputText,
       });
 
@@ -429,7 +429,14 @@ export default function NewApp() {
         />
       )}
       {state.isConfigOpen && (
-        <TweetConfig promptList={state.promptList} activePrompt={state.activePrompt} dispatch={dispatch} />
+        <TweetConfig
+          toggleModal={() => {
+            dispatch({ type: 'SET_CONFIG_TOGGLE' });
+          }}
+          promptList={state.promptList}
+          activePrompt={state.activePrompt}
+          dispatch={dispatch}
+        />
       )}
     </div>
   );
