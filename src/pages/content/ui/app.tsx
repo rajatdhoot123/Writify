@@ -135,11 +135,6 @@ const AiTweetToolbar = ({ dispatch, state, handleGenerateAiTweet, loader, handle
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'TOGGLE_OPEN_AI_MODAL':
-      return {
-        ...state,
-        openAiModal: !state.openAiModal,
-      };
     case 'SET_OPEN_AI_KEY':
       return {
         ...state,
@@ -169,90 +164,11 @@ function reducer(state, action) {
   // ...
 }
 
-const OpenAiKeyModal = ({ handleResetOpenAi, toggleModal, dispatch, openAiKey }) => {
-  const handleSubmit = e => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data: { open_ai_key: string } = { open_ai_key: '' }; // Initialize the data object with the required open_ai_key property
-    for (const [key, value] of formData.entries()) {
-      data[key] = value;
-    }
-
-    chrome?.storage?.sync?.set(data, function () {
-      //  A data saved callback omg so fancy
-      dispatch({ type: 'SET_OPEN_AI_KEY', payload: data.open_ai_key });
-    });
-  };
-
-  const handleStopPropagation = e => {
-    e.stopPropagation();
-  };
-
-  return (
-    <div
-      onClick={handleStopPropagation}
-      className="relative z-[9999]"
-      aria-labelledby="modal-title"
-      role="dialog"
-      aria-modal="true">
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-      <div className="fixed inset-0 z-[9999] w-screen overflow-y-auto">
-        <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-          <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-            <div className="m-5">
-              {openAiKey ? (
-                <button
-                  onClick={handleResetOpenAi}
-                  type="submit"
-                  className="w-full rounded-md p-2 bg-blue-600 text-sm font-semibold text-white transition-all duration-200 ease-in-out group-focus-within:bg-blue-400 group-focus-within:hover:bg-blue-600">
-                  Reset Open Ai Key
-                </button>
-              ) : (
-                <form onSubmit={handleSubmit}>
-                  <div className="group w-full">
-                    <label
-                      htmlFor="8"
-                      className="inline-block w-full text-sm font-bold text-gray-700 transition-all duration-200 ease-in-out group-focus-within:text-black mb-2">
-                      Enter Your Chat Gpt Api Key
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        name="open_ai_key"
-                        id="8"
-                        type="text"
-                        className="peer relative h-10 w-full rounded-md bg-gray-50 pl-4 pr-20 outline-none drop-shadow-sm transition-all duration-200 ease-in-out focus:bg-white focus:drop-shadow-lg"
-                      />
-                      <button
-                        type="submit"
-                        className="absolute right-0 h-10 w-16 rounded-r-md bg-blue-200 text-xs font-semibold text-white transition-all duration-200 ease-in-out group-focus-within:bg-blue-400 group-focus-within:hover:bg-blue-600">
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              )}
-            </div>
-            <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-              <button
-                onClick={toggleModal}
-                type="button"
-                className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function NewApp() {
   const [loader, setLoader] = useState(false);
 
   const [state, dispatch] = useReducer(reducer, {
     openAiKey: '',
-    openAiModal: false,
     promptList: [
       { value: 'general', label: 'Your are tweet expert' },
       { value: 'genera2', label: 'Your are tweet export' },
@@ -365,13 +281,9 @@ export default function NewApp() {
     dispatch({ type: 'SET_CONFIG_TOGGLE' });
   };
 
-  const toggleModal = () => {
-    dispatch({ type: 'TOGGLE_OPEN_AI_MODAL' });
-  };
-
   const handleGenerateAiTweet = async event => {
     if (!state.openAiKey) {
-      return dispatch({ type: 'TOGGLE_OPEN_AI_MODAL' });
+      return dispatch({ type: 'SET_CONFIG_TOGGLE' });
     }
     setLoader(true);
     try {
@@ -420,16 +332,9 @@ export default function NewApp() {
           crypto.randomUUID(),
         );
       })}
-      {state.openAiModal && (
-        <OpenAiKeyModal
-          openAiKey={state.openAiKey}
-          toggleModal={toggleModal}
-          dispatch={dispatch}
-          handleResetOpenAi={handleResetOpenAi}
-        />
-      )}
       {state.isConfigOpen && (
         <TweetConfig
+          handleResetOpenAi={handleResetOpenAi}
           toggleModal={() => {
             dispatch({ type: 'SET_CONFIG_TOGGLE' });
           }}
