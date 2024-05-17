@@ -178,9 +178,8 @@ export default function NewApp() {
     activePrompt: 'general',
     user: {},
   });
-  const [activeUrl, setActiveUrl] = useState(document.location.href);
+  // const [activeUrl, setActiveUrl] = useState(document.location.href);
   const [refresh, setRefresh] = useState(null);
-  const [inputText, setInputText] = useState('');
 
   const handleResetOpenAi = () => {
     chrome.storage.sync.remove(['open_ai_key'], function () {
@@ -208,30 +207,20 @@ export default function NewApp() {
     }
   }, [state.openAiKey]);
 
-  useEffect(() => {
-    document.addEventListener('input', function (e) {
-      if ((e.target as HTMLElement).getAttribute('role') === 'textbox') {
-        const text = (e.target as HTMLElement).textContent;
-        // Process the text and prepare suggestions
-        setInputText(text);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    const observeUrlChange = () => {
-      let oldHref = document.location.href;
-      const body = document.querySelector('body');
-      const observer = new MutationObserver(mutations => {
-        if (oldHref !== document.location.href) {
-          oldHref = document.location.href;
-          setActiveUrl(oldHref);
-        }
-      });
-      observer.observe(body, { childList: true, subtree: true });
-    };
-    observeUrlChange();
-  }, []);
+  // useEffect(() => {
+  //   const observeUrlChange = () => {
+  //     let oldHref = document.location.href;
+  //     const body = document.querySelector('body');
+  //     const observer = new MutationObserver(mutations => {
+  //       if (oldHref !== document.location.href) {
+  //         oldHref = document.location.href;
+  //         setActiveUrl(oldHref);
+  //       }
+  //     });
+  //     observer.observe(body, { childList: true, subtree: true });
+  //   };
+  //   observeUrlChange();
+  // }, []);
 
   useEffect(() => {
     const toolSuit_id = 'tweetify-ai';
@@ -291,16 +280,18 @@ export default function NewApp() {
     }
     setLoader(true);
     try {
+      const contentEditable = findClosest(document.getElementById('ai-tweet-button'), '[contenteditable="true"]');
+
+      const input = (contentEditable as HTMLElement).textContent;
+
       const twitterPrompt = ChatPromptTemplate.fromMessages([
         ['system', state.promptList.find(prompt => prompt.value === state.activePrompt).label],
         ['user', '{input}'],
       ]);
       const chain = twitterPrompt.pipe(chatModel);
       const response: any = await chain.invoke({
-        input: inputText,
+        input,
       });
-
-      const contentEditable = findClosest(document.getElementById('ai-tweet-button'), '[contenteditable="true"]');
 
       if (contentEditable) {
         contentEditable.focus();
