@@ -89,7 +89,7 @@ const setTokens = async (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, t
   }
 };
 
-const SIDEBAR_ORIGIN = 'https://twitter.com/home';
+const SIDEBAR_ORIGIN = ['https://twitter.com', 'https://x.com'];
 
 // Allows users to open the side panel by clicking on the action toolbar icon
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(error => console.error(error));
@@ -99,7 +99,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     const url = new URL(tab.url);
 
     // Check if the tab URL matches 'launchify.club' to enable the side panel
-    if (url.origin === SIDEBAR_ORIGIN) {
+    if (SIDEBAR_ORIGIN.includes(url.origin)) {
       await chrome.sidePanel.setOptions({
         tabId,
         path: 'src/pages/sidepanel/index.html',

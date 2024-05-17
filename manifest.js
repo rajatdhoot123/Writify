@@ -37,14 +37,14 @@ const manifest = {
   content_scripts: [
     {
       // matches: ['http://*/*', 'https://*/*', '<all_urls>'], For all urls
-      matches: ['https://*.twitter.com/*'],
+      matches: ['https://*.twitter.com/*', 'https://*.x.com/*'],
       js: ['src/pages/contentInjected/index.js'],
       // KEY for cache invalidation
       css: ['assets/css/contentStyle<KEY>.chunk.css'],
     },
     {
       // matches: ['http://*/*', 'https://*/*', '<all_urls>'], For all urls
-      matches: ['https://*.twitter.com/*'],
+      matches: ['https://*.twitter.com/*', 'https://*.x.com/*'],
       js: ['src/pages/contentUI/index.js'],
     },
   ],
