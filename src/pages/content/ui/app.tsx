@@ -52,81 +52,11 @@ const AiTweetToolbar = ({ dispatch, state, handleGenerateAiTweet, loader, handle
         gap: '5',
       }}>
       <Dropdown dispatch={dispatch} promptList={state.promptList} activePrompt={state.activePrompt} />
-      <button
-        id="ai-tweet-button"
-        onClick={handleGenerateAiTweet}
-        style={{
-          display: 'flex',
-          margin: '0 5px',
-          alignItems: 'center',
-          fontFamily:
-            'TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-          backgroundColor: 'rgb(29, 161, 242)',
-          cursor: 'pointer',
-          color: 'white',
-          height: '36px',
-          paddingLeft: '16px',
-          paddingRight: '16px',
-          fontSize: '15px',
-          fontWeight: 'bold',
-          float: 'right',
-          borderWidth: 'initial',
-          borderStyle: 'none',
-          borderColor: 'initial',
-          borderImage: 'initial',
-          borderRadius: '25px',
-        }}
-        onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) =>
-          ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(18, 129, 201)')
-        }
-        onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) =>
-          ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(29, 155, 240)')
-        }
-        onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) =>
-          ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(14, 106, 166)')
-        }
-        onMouseUp={(e: React.MouseEvent<HTMLButtonElement>) => {
-          const target = e.target as HTMLButtonElement;
-          target.style.backgroundColor = 'rgb(29, 155, 240)';
-        }}>
+      <button className="tweet-button" id="ai-tweet-button" onClick={handleGenerateAiTweet}>
         <span>{loader && <Loader />}</span>
         <span>Generate AI Tweet</span>
       </button>
-      <button
-        onClick={handleConfig}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          fontFamily:
-            'TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-          backgroundColor: 'rgb(29, 161, 242)',
-          cursor: 'pointer',
-          color: 'white',
-          height: '36px',
-          paddingLeft: '16px',
-          paddingRight: '16px',
-          fontSize: '15px',
-          fontWeight: 'bold',
-          float: 'right',
-          borderWidth: 'initial',
-          borderStyle: 'none',
-          borderColor: 'initial',
-          borderImage: 'initial',
-          borderRadius: '25px',
-        }}
-        onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) =>
-          ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(18, 129, 201)')
-        }
-        onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) =>
-          ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(29, 155, 240)')
-        }
-        onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) =>
-          ((e.target as HTMLButtonElement).style.backgroundColor = 'rgb(14, 106, 166)')
-        }
-        onMouseUp={(e: React.MouseEvent<HTMLButtonElement>) => {
-          const target = e.target as HTMLButtonElement;
-          target.style.backgroundColor = 'rgb(29, 155, 240)';
-        }}>
+      <button className="tweet-button" onClick={handleConfig}>
         <span>Config</span>
       </button>
     </div>
@@ -134,7 +64,6 @@ const AiTweetToolbar = ({ dispatch, state, handleGenerateAiTweet, loader, handle
 };
 
 function reducer(state, action) {
-  console.log(action.type);
   switch (action.type) {
     case 'SET_OPEN_AI_KEY':
       return {

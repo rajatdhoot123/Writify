@@ -14,6 +14,39 @@ function addStyle(styleString) {
 // Add the scoped styles
 const styles = `
 .twittity {
+  .tweet-button {
+    display: flex;
+    margin: 0 5px;
+    align-items: center;
+    font-family: 'TwitterChirp', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: rgb(29, 161, 242);
+    cursor: pointer;
+    color: white;
+    height: 36px;
+    padding-left: 16px;
+    padding-right: 16px;
+    font-size: 15px;
+    font-weight: bold;
+    float: right;
+    border-width: initial;
+    border-style: none;
+    border-color: initial;
+    border-image: initial;
+    border-radius: 25px;
+    transition: background-color 0.2s ease;
+  }
+  
+  .tweet-button:hover {
+    background-color: rgb(18, 129, 201);
+  }
+  
+  .tweet-button:active {
+    background-color: rgb(14, 106, 166);
+  }
+  
+  .tweet-button:focus {
+    outline: none;
+  }
   .custom-loader {
     display: flex;
     margin-right: 0.5rem;
