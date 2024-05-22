@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import App from '@pages/content/ui/app';
 import refreshOnUpdate from 'virtual:reload-on-update-in-view';
 import injectedStyle from './injected.css?inline';
+import { Toaster } from 'react-hot-toast';
 
 refreshOnUpdate('pages/content');
 
@@ -98,5 +99,27 @@ shadowRoot.appendChild(styleElement);
  */
 
 setTimeout(() => {
-  createRoot(rootIntoShadow).render(<App />);
+  createRoot(rootIntoShadow).render(
+    <>
+      <App />
+      <Toaster
+        toastOptions={{
+          success: {
+            style: {
+              padding: '10px',
+              background: 'green',
+              borderRadius: '12px',
+            },
+          },
+          error: {
+            style: {
+              padding: '10px',
+              borderRadius: '12px',
+              background: 'red',
+            },
+          },
+        }}
+      />
+    </>,
+  );
 }, 1000);

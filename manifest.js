@@ -12,9 +12,9 @@ const manifest = {
    * if you want to support multiple languages, you can use the following reference
    * https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Internationalization
    */
-  name: 'Tweetify',
+  name: 'Tweetify - Tweet writer & scraper',
   version: packageJson.version,
-  description: 'Tweetify is a browser extension that helps you to write tweets in a better way.',
+  description: 'Tweetify helps you write five times better tweets with custom agents and scrape tweets and threads for multiple use cases.',
   permissions: ['storage', 'sidePanel', 'tabs'],
   side_panel: {
     default_path: 'src/pages/sidepanel/index.html',
@@ -27,9 +27,6 @@ const manifest = {
   action: {
     default_popup: 'src/pages/popup/index.html',
     default_icon: 'icon32.png',
-  },
-  chrome_url_overrides: {
-    newtab: 'src/pages/newtab/index.html',
   },
   icons: {
     128: 'icon128.png',

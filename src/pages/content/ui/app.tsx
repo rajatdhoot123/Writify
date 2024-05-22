@@ -17,6 +17,7 @@ import {
   findClosest,
   clearContent,
 } from '@root/src/lib/extension';
+import Scrapper from '@root/src/components/Scrapper';
 
 const Loader = () => {
   return (
@@ -52,12 +53,13 @@ const AiTweetToolbar = ({ dispatch, state, handleGenerateAiTweet, loader, handle
         gap: '5',
       }}>
       <Dropdown dispatch={dispatch} promptList={state.promptList} activePrompt={state.activePrompt} />
+
+      <button className="tweet-button" onClick={handleConfig}>
+        <span>Add Agent</span>
+      </button>
       <button className="tweet-button" id="ai-tweet-button" onClick={handleGenerateAiTweet}>
         <span>{loader && <Loader />}</span>
         <span>Generate AI Tweet</span>
-      </button>
-      <button className="tweet-button" onClick={handleConfig}>
-        <span>Config</span>
       </button>
     </div>
   );
@@ -100,7 +102,7 @@ export default function NewApp() {
     openAiKey: '',
     promptList: [
       {
-        value: 'general',
+        value: 'Tweet Master',
         label: `You are a social media expert specializing in maximizing engagement on Twitter. Your task is to help improve the given tweet by making it more engaging, attention-grabbing, and shareable. Consider using compelling language, relevant hashtags, and a clear call-to-action. Ensure the tweet remains concise and within Twitter's character limit. Here is the tweet to improve`,
       },
     ],
@@ -230,8 +232,6 @@ export default function NewApp() {
           contentEditable.dispatchEvent(new InputEvent('textInput', { data: response.content, bubbles: true }));
         }, 200);
       }
-      // document.querySelector('[data-text]').textContent = response.content;
-      // document.querySelector('[data-text]').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
     } catch (err) {
       console.log(err);
     } finally {
@@ -267,6 +267,7 @@ export default function NewApp() {
           dispatch={dispatch}
         />
       )}
+      <Scrapper />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 // src/components/NotionLikeList.js
 import React, { useRef } from 'react';
+import toast from 'react-hot-toast';
 
 // eslint-disable-next-line react/prop-types
 const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi, openAiKey }) => {
@@ -41,12 +42,13 @@ const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi
     chrome?.storage?.sync?.set(data, function () {
       //  A data saved callback omg so fancy
       dispatch({ type: 'SET_OPEN_AI_KEY', payload: data.open_ai_key });
+      toast.success('Key Saved');
     });
   };
 
   return (
     <div className="w-full">
-      <h1 className="text-2xl font-bold mb-4">Twitter AI Prompts</h1>
+      <h1 className="text-2xl font-bold mb-4 text-black">Twitter AI Prompts</h1>
       <div className="flex gap-6">
         <div className="space-y-4">
           <form onSubmit={handleSubmit}>
@@ -56,15 +58,15 @@ const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi
                   required
                   name="alias"
                   type="text"
-                  className="flex-1 p-2 border border-gray-300 rounded-l-lg w-full rounded-md"
-                  placeholder="Prompt Alias"
+                  className="flex-1 p-2 border border-gray-300 rounded-l-lg w-full rounded-md bg-white text-black"
+                  placeholder="Enter Agent Name"
                 />
                 <textarea
                   required
                   name="newItem"
                   type="text"
-                  className="flex-1 p-2 border border-gray-300 rounded-l-lg w-full rounded-md"
-                  placeholder="Add a new item"
+                  className="flex-1 p-2 border border-gray-300 rounded-l-lg w-full rounded-md bg-white text-black"
+                  placeholder="Enter Your Prompt"
                 />
               </div>
             </div>
@@ -81,11 +83,12 @@ const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi
               </label>
               <div className="relative flex items-center">
                 <input
+                  required
                   defaultValue={openAiKey}
                   name="open_ai_key"
                   id="8"
                   type="text"
-                  className="peer relative h-10 w-full rounded-md bg-gray-50 pl-4 pr-20 outline-none drop-shadow-sm transition-all duration-200 ease-in-out focus:bg-white focus:drop-shadow-lg"
+                  className="text-black peer relative h-10 w-full rounded-md bg-gray-50 pl-4 pr-20 outline-none drop-shadow-sm transition-all duration-200 ease-in-out focus:bg-white focus:drop-shadow-lg"
                 />
                 <button
                   type="submit"
@@ -109,7 +112,7 @@ const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi
             <li
               onClick={() => dispatch({ type: 'SET_ACTIVE_PROMPT', payload: item.value })}
               key={item.value}
-              className={`flex cursor-pointer justify-between items-center p-2 break-normal ${activePrompt === item.value ? 'border-blue-300 border rounded-md' : 'border-gray-200 border-b'}`}>
+              className={`text-black flex cursor-pointer justify-between items-center p-2 break-normal ${activePrompt === item.value ? 'border-blue-300 border rounded-md' : 'border-gray-200 border-b'}`}>
               <p className="break-all">{item.label}</p>
               {promptList.length > 1 && (
                 <button onClick={() => deleteItem(item.value)} className="text-gray-500">
