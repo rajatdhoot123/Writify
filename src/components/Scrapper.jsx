@@ -133,9 +133,13 @@ export default function App() {
           </button>
           <div className="w-full max-w-xs">
             <div>
-              <div className='text-black text-xl'>Tweet Scrapper</div>
+              <div className="text-black text-xl">Tweet Scrapper</div>
+              <p className="text-sm text-black">
+                Use this tool to start scraping tweets or threads of your choice for multiple use cases like curating
+                resources and many more
+              </p>
             </div>
-            <div className='border h-0.5 w-full my-2' />
+            <div className="border h-0.5 w-full my-2" />
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="timeout">
                 Timeout

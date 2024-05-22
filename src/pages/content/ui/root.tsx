@@ -16,6 +16,8 @@ function addStyle(styleString) {
 const styles = `
 .twittity {
   .tweet-button {
+    justify-content: center;
+    width: 100%;
     display: flex;
     margin: 0 5px;
     align-items: center;
