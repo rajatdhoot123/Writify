@@ -48,7 +48,7 @@ const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi
 
   return (
     <div className="w-full">
-      <h1 className="text-2xl font-bold mb-4 text-black">Twitter AI Prompts</h1>
+      <h1 className="text-2xl font-bold mb-4 text-black">AI Prompts</h1>
       <div className="flex gap-6">
         <div className="space-y-4">
           <form onSubmit={handleSubmit}>
