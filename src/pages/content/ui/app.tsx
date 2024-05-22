@@ -18,6 +18,7 @@ import {
   clearContent,
 } from '@root/src/lib/extension';
 import Scrapper from '@root/src/components/Scrapper';
+import { setStorageData } from '@root/src/lib/helper';
 
 const Loader = () => {
   return (
@@ -120,11 +121,17 @@ export default function NewApp() {
   // const [activeUrl, setActiveUrl] = useState(document.location.href);
   const [refresh, setRefresh] = useState(null);
 
-  const handleResetOpenAi = () => {
-    chrome.storage.sync.remove(['open_ai_key'], function () {
-      dispatch({ type: 'SET_OPEN_AI_KEY', payload: '' });
+  useEffect(() => {
+    console.log('----------+++++==========');
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      switch (message.action) {
+        case 'UPDATE_TAB':
+          return '';
+      }
+      return true;
+      // return true <- this and the callback in background.js are what caused a crash in extensions page of my Google chrome
     });
-  };
+  }, []);
 
   const chatModel = useCallback(
     () => {
@@ -135,31 +142,22 @@ export default function NewApp() {
     [state.openAiKey], // Add an empty array as the second argument
   );
 
-  useEffect(() => {
-    if (!state.openAiKey) {
-      chrome?.storage?.sync.get(/* String or Array */ ['open_ai_key', 'promptList'], function (items) {
-        dispatch({ payload: items.open_ai_key || '', type: 'SET_OPEN_AI_KEY' });
-        if (items.promptList) {
-          dispatch({ payload: items.promptList || '', type: 'SET_PROMPT_LIST' });
-        }
-      });
-    }
-  }, [state.openAiKey]);
-
   // useEffect(() => {
-  //   const observeUrlChange = () => {
-  //     let oldHref = document.location.href;
-  //     const body = document.querySelector('body');
-  //     const observer = new MutationObserver(mutations => {
-  //       if (oldHref !== document.location.href) {
-  //         oldHref = document.location.href;
-  //         setActiveUrl(oldHref);
+  //   if (!state.openAiKey) {
+  //     chrome?.storage?.sync.get(/* String or Array */ ['open_ai_key', 'promptList'], function (items) {
+  //       dispatch({ payload: items.open_ai_key || '', type: 'SET_OPEN_AI_KEY' });
+  //       if (items.promptList) {
+  //         dispatch({ payload: items.promptList || '', type: 'SET_PROMPT_LIST' });
   //       }
   //     });
-  //     observer.observe(body, { childList: true, subtree: true });
-  //   };
-  //   observeUrlChange();
-  // }, []);
+  //   }
+  // }, [state.openAiKey]);
+
+  useEffect(() => {
+    (async () => {
+      await setStorageData(state);
+    })();
+  }, [state]);
 
   useEffect(() => {
     const toolSuit_id = 'tweetify-ai';
@@ -263,18 +261,6 @@ export default function NewApp() {
           crypto.randomUUID(),
         );
       })}
-      {state.isConfigOpen && (
-        <TweetConfig
-          openAiKey={state.openAiKey}
-          handleResetOpenAi={handleResetOpenAi}
-          toggleModal={() => {
-            dispatch({ type: 'SET_CONFIG_TOGGLE' });
-          }}
-          promptList={state.promptList}
-          activePrompt={state.activePrompt}
-          dispatch={dispatch}
-        />
-      )}
       <Scrapper />
     </div>
   );
