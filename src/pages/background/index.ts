@@ -12,6 +12,9 @@ reloadOnUpdate('pages/content/style.scss');
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   switch (request.action) {
+    case 'OPEN_SETTING_PAGE':
+      chrome.runtime.openOptionsPage();
+      break;
     case 'signUpWithWeb':
       {
         const url = request.payload.url;

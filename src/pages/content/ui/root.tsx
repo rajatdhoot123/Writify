@@ -109,13 +109,17 @@ setTimeout(() => {
         toastOptions={{
           success: {
             style: {
+              color: 'white',
               padding: '10px',
+              fontWeight: '600',
               background: 'green',
               borderRadius: '12px',
             },
           },
           error: {
             style: {
+              color: 'white',
+              fontWeight: '600',
               padding: '10px',
               borderRadius: '12px',
               background: 'red',

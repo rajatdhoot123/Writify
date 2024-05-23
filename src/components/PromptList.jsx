@@ -107,7 +107,7 @@ const PromptList = ({ dispatch, activePrompt, promptList = [], handleResetOpenAi
             Reset Open Ai Key
           </button>
         </div>
-        <ul className="w-full">
+        <ul className="w-full text-base">
           {promptList.map(item => (
             <li
               onClick={() => dispatch({ type: 'SET_ACTIVE_PROMPT', payload: item.value })}

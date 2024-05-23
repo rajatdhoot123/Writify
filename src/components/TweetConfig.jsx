@@ -1,10 +1,15 @@
-/* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
-/* eslint-disable react/prop-types */
-import { useEffect } from 'react';
 import PromptList from './PromptList';
 
 const TweetConfig = ({ dispatch, activePrompt, promptList, toggleModal, handleResetOpenAi, openAiKey }) => {
+  return (
+    <PromptList
+      openAiKey={openAiKey}
+      handleResetOpenAi={handleResetOpenAi}
+      promptList={promptList}
+      activePrompt={activePrompt}
+      dispatch={dispatch}
+    />
+  );
   return (
     <div
       onClick={e => e.stopPropagation()}
