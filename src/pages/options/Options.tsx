@@ -13,7 +13,7 @@ const Options: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto my-12">
       <TweetConfig
         openAiKey={state.openAiKey}
         handleResetOpenAi={handleResetOpenAi}

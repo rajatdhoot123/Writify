@@ -1,61 +1,82 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useReducer, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { findClosestParent, findClosest, clearContent } from '@root/src/lib/extension';
+import useStore from '@root/src/lib/store';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { createPortal } from 'react-dom';
+import Loader from '@root/src/components/loader';
 
-function reducer(state, action) {
-  switch (action.type) {
-    case 'SET_OPEN_AI_KEY':
-      return {
-        ...state,
-        openAiKey: action.payload,
-      };
-    case 'SET_CONFIG_TOGGLE':
-      return {
-        ...state,
-        isConfigOpen: !state.isConfigOpen,
-      };
-    case 'SET_PROMPT_LIST':
-      return {
-        ...state,
-        promptList: action.payload,
-      };
-    case 'SET_ACTIVE_PROMPT':
-      return {
-        ...state,
-        activePrompt: action.payload,
-      };
-    case 'SET_USER':
-      return {
-        ...state,
-        user: action.payload,
-      };
-  }
-}
+const toolSuit_id = 'slacker-ai';
+
+const AiTweetToolbar = ({ handleGenerateAiTweet, loader }) => {
+  return (
+    <div
+      className="twittity"
+      style={{
+        borderRadius: '6px',
+        marginLeft: '4px',
+        backgroundColor: '#007a5a',
+        height: '28px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '2',
+      }}>
+      <button style={{ margin: 'auto 6px', display: 'flex' }} onClick={handleGenerateAiTweet}>
+        {loader ? (
+          <Loader source="slack" />
+        ) : (
+          <svg
+            style={{ height: '16px', width: '16px' }}
+            stroke="currentColor"
+            fill="none"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            height="1em"
+            width="1em"
+            xmlns="http://www.w3.org/2000/svg">
+            <path d="m22 2-7 20-4-9-9-4Z"></path>
+            <path d="M22 2 11 13"></path>
+          </svg>
+        )}
+      </button>
+
+      <button
+        style={{ margin: 'auto 6px', display: 'flex' }}
+        onClick={async () => {
+          await chrome.runtime.sendMessage({
+            action: 'OPEN_SETTING_PAGE',
+          });
+        }}>
+        <svg
+          style={{ height: '16px', width: '16px' }}
+          stroke="currentColor"
+          fill="currentColor"
+          strokeWidth="0"
+          viewBox="0 0 512 512"
+          height="1em"
+          width="1em"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="32"
+            d="M262.29 192.31a64 64 0 1 0 57.4 57.4 64.13 64.13 0 0 0-57.4-57.4zM416.39 256a154.34 154.34 0 0 1-1.53 20.79l45.21 35.46a10.81 10.81 0 0 1 2.45 13.75l-42.77 74a10.81 10.81 0 0 1-13.14 4.59l-44.9-18.08a16.11 16.11 0 0 0-15.17 1.75A164.48 164.48 0 0 1 325 400.8a15.94 15.94 0 0 0-8.82 12.14l-6.73 47.89a11.08 11.08 0 0 1-10.68 9.17h-85.54a11.11 11.11 0 0 1-10.69-8.87l-6.72-47.82a16.07 16.07 0 0 0-9-12.22 155.3 155.3 0 0 1-21.46-12.57 16 16 0 0 0-15.11-1.71l-44.89 18.07a10.81 10.81 0 0 1-13.14-4.58l-42.77-74a10.8 10.8 0 0 1 2.45-13.75l38.21-30a16.05 16.05 0 0 0 6-14.08c-.36-4.17-.58-8.33-.58-12.5s.21-8.27.58-12.35a16 16 0 0 0-6.07-13.94l-38.19-30A10.81 10.81 0 0 1 49.48 186l42.77-74a10.81 10.81 0 0 1 13.14-4.59l44.9 18.08a16.11 16.11 0 0 0 15.17-1.75A164.48 164.48 0 0 1 187 111.2a15.94 15.94 0 0 0 8.82-12.14l6.73-47.89A11.08 11.08 0 0 1 213.23 42h85.54a11.11 11.11 0 0 1 10.69 8.87l6.72 47.82a16.07 16.07 0 0 0 9 12.22 155.3 155.3 0 0 1 21.46 12.57 16 16 0 0 0 15.11 1.71l44.89-18.07a10.81 10.81 0 0 1 13.14 4.58l42.77 74a10.8 10.8 0 0 1-2.45 13.75l-38.21 30a16.05 16.05 0 0 0-6.05 14.08c.33 4.14.55 8.3.55 12.47z"></path>
+        </svg>
+      </button>
+    </div>
+  );
+};
 
 const Slack = () => {
   const [loader, setLoader] = useState(false);
-
-  const [state, dispatch] = useReducer(reducer, {
-    openAiKey: '',
-    promptList: [
-      {
-        value: 'All-in-One AI Master Agent for Writing Tweets',
-        label: `You are an AI assistant skilled in writing engaging and effective tweets for a wide variety of purposes. Your goal is to craft tweets that are concise, compelling, and tailored to the specific context or audience. Avoid using exaggerating or "bluff" words. Keep the language simple, straightforward, and with a human touch. You should be able to write tweets for different tones, such as informative, persuasive, humorous, or inspirational, while maintaining a natural and authentic voice. Additionally, you should incorporate relevant hashtags, mentions, and other elements to enhance the tweet's visibility and engagement. Please provide a draft tweet based on the provided context or topic.`,
-      },
-      {
-        value: 'Improve My Writing Agent',
-        label: ` You are an AI assistant specializing in improving and refining written content, particularly tweets. Your task is to take an existing draft tweet and enhance its grammar, clarity, and overall effectiveness. Avoid using exaggerating or "bluff" words. Keep the language simple, straightforward, and with a human touch. This may involve correcting any grammatical or spelling errors, rephrasing sentences for better flow and conciseness, and ensuring that the message is conveyed in a compelling and readable manner. Additionally, you should suggest ways to make the tweet more engaging, such as by incorporating relevant hashtags, mentions, or other elements that could increase its visibility and impact, while maintaining a natural and authentic voice. Please provide an improved version of the draft tweet, along with brief explanations for any significant changes made.`,
-      },
-      {
-        value: 'Daily Tech Quote Writer Agent',
-        label: `You are an AI assistant specializing in generating motivational and thought-provoking quotes related to technology and software development. Your task is to create a daily quote that can inspire and encourage developers, engineers, and tech enthusiasts. Avoid using exaggerating or "bluff" words. Keep the language simple, straightforward, and with a human touch. The quote should be concise, memorable, and capture an insightful or inspiring message about the ever-evolving world of technology, the challenges and rewards of coding, or the importance of continuous learning and innovation, while maintaining a natural and authentic voice. The quote should be tailored to be shareable on social media platforms like Twitter, so it should be attention-grabbing and suitable for a tweet. Please provide a fresh and engaging tech-related quote for the day.`,
-      },
-    ],
-    activePrompt: 'All-in-One AI Master Agent for Writing Tweets',
-    user: {},
-  });
+  const [refresh, setRefresh] = useState(window.crypto.randomUUID());
+  const [state, dispatch] = useStore();
 
   const chatModel = useCallback(
     () => {
@@ -69,7 +90,9 @@ const Slack = () => {
   const handleGenerateAiTweet = useCallback(
     async event => {
       if (!state.openAiKey) {
-        // Handle
+        await chrome.runtime.sendMessage({
+          action: 'OPEN_SETTING_PAGE',
+        });
         return;
       }
 
@@ -93,9 +116,7 @@ const Slack = () => {
           setTimeout(() => {
             clearContent(contentEditable);
             // Dispatch an input event to simulate user input
-            contentEditable
-              .querySelector('p')
-              .dispatchEvent(new InputEvent('textInput', { data: response.content, bubbles: true }));
+            contentEditable.querySelector('p').innerText = response.content;
           }, 200);
         }
       } catch (err) {
@@ -109,7 +130,6 @@ const Slack = () => {
 
   useEffect(() => {
     setInterval(() => {
-      const toolSuit_id = 'slacker-ai';
       const editors = document.getElementsByClassName('ql-editor');
 
       [...editors].forEach(el => {
@@ -117,15 +137,30 @@ const Slack = () => {
         if (toolbar && !toolbar.querySelector(`#${toolSuit_id}`)) {
           const toolSuit = document.createElement('div');
           toolSuit.id = toolSuit_id;
-          toolSuit.textContent = 'AI';
-          toolSuit.onclick = handleGenerateAiTweet;
+          // toolSuit.className =
+          //   'c-button-unstyled c-icon_button c-icon_button--size_small c-wysiwyg_container__button c-wysiwyg_container__button--send c-icon_button--default';
+          // toolSuit.textContent = 'AI';
+
+          // toolSuit.innerHTML = `<p style="margin: auto;">AI</p>`;
+          // toolSuit.onclick = handleGenerateAiTweet;
           toolbar.append(toolSuit);
+          setRefresh(window.crypto.randomUUID());
         }
       });
     }, 2000);
   }, [handleGenerateAiTweet]);
 
-  return null;
+  return (
+    <div>
+      {[...document.querySelectorAll(`[id='${toolSuit_id}']`)].map((el, index) => {
+        return createPortal(
+          <AiTweetToolbar loader={loader} key={index} handleGenerateAiTweet={handleGenerateAiTweet} />,
+          el as Element | DocumentFragment,
+          crypto.randomUUID(),
+        );
+      })}
+    </div>
+  );
 };
 
 export default Slack;

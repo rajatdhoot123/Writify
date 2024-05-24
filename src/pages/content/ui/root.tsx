@@ -51,25 +51,6 @@ const styles = `
   .tweet-button:focus {
     outline: none;
   }
-  .custom-loader {
-    display: flex;
-    margin-right: 0.5rem;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .custom-loader-svg {
-    width: 1rem;
-    height: 1rem;
-    color: #e5e7eb; /* text-gray-200 */
-    animation: spin 1s linear infinite; /* animate-spin */
-    fill: #2563eb; /* fill-blue-600 */
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
 }
   `;
 
