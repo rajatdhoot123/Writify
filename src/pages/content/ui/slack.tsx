@@ -1,13 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useReducer, useCallback } from 'react';
-import {
-  findButtonsByText,
-  findDivsByText,
-  findClosestParent,
-  findClosest,
-  clearContent,
-} from '@root/src/lib/extension';
-import TweetConfig from '@root/src/components/TweetConfig';
+import { findClosestParent, findClosest, clearContent } from '@root/src/lib/extension';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 
@@ -73,42 +66,46 @@ const Slack = () => {
     [state.openAiKey], // Add an empty array as the second argument
   );
 
-  const handleGenerateAiTweet = async event => {
-    if (!state.openAiKey) {
-      return dispatch({ type: 'SET_CONFIG_TOGGLE' });
-    }
-
-    setLoader(true);
-    try {
-      const contentEditable = findClosestParent(event.target, '.ql-editor');
-
-      const input = (contentEditable as HTMLElement).textContent;
-
-      const twitterPrompt = ChatPromptTemplate.fromMessages([
-        ['system', state.promptList.find(prompt => prompt.value === state.activePrompt).label],
-        ['user', '{input}'],
-      ]);
-      const chain = twitterPrompt.pipe(chatModel);
-      const response: any = await chain.invoke({
-        input,
-      });
-
-      if (contentEditable) {
-        contentEditable.focus();
-        setTimeout(() => {
-          clearContent(contentEditable);
-          // Dispatch an input event to simulate user input
-          contentEditable
-            .querySelector('p')
-            .dispatchEvent(new InputEvent('textInput', { data: response.content, bubbles: true }));
-        }, 200);
+  const handleGenerateAiTweet = useCallback(
+    async event => {
+      if (!state.openAiKey) {
+        // Handle
+        return;
       }
-    } catch (err) {
-      console.log(err);
-    } finally {
-      setLoader(false);
-    }
-  };
+
+      setLoader(true);
+      try {
+        const contentEditable = findClosestParent(event.target, '.ql-editor');
+
+        const input = (contentEditable as HTMLElement).textContent;
+
+        const twitterPrompt = ChatPromptTemplate.fromMessages([
+          ['system', state.promptList.find(prompt => prompt.value === state.activePrompt).label],
+          ['user', '{input}'],
+        ]);
+        const chain = twitterPrompt.pipe(chatModel);
+        const response: any = await chain.invoke({
+          input,
+        });
+
+        if (contentEditable) {
+          contentEditable.focus();
+          setTimeout(() => {
+            clearContent(contentEditable);
+            // Dispatch an input event to simulate user input
+            contentEditable
+              .querySelector('p')
+              .dispatchEvent(new InputEvent('textInput', { data: response.content, bubbles: true }));
+          }, 200);
+        }
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setLoader(false);
+      }
+    },
+    [chatModel, state.activePrompt, state.openAiKey, state.promptList],
+  );
 
   useEffect(() => {
     setInterval(() => {
@@ -126,31 +123,9 @@ const Slack = () => {
         }
       });
     }, 2000);
-  }, []);
+  }, [handleGenerateAiTweet]);
 
-  const handleResetOpenAi = () => {
-    chrome.storage.sync.remove(['open_ai_key'], function () {
-      dispatch({ type: 'SET_OPEN_AI_KEY', payload: '' });
-    });
-  };
-
-  console.log(state);
-  return (
-    <div>
-      {state.isConfigOpen && (
-        <TweetConfig
-          openAiKey={state.openAiKey}
-          handleResetOpenAi={handleResetOpenAi}
-          toggleModal={() => {
-            dispatch({ type: 'SET_CONFIG_TOGGLE' });
-          }}
-          promptList={state.promptList}
-          activePrompt={state.activePrompt}
-          dispatch={dispatch}
-        />
-      )}
-    </div>
-  );
+  return null;
 };
 
 export default Slack;
