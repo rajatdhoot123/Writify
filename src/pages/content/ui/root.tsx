@@ -3,6 +3,7 @@ import App from '@pages/content/ui/app';
 import refreshOnUpdate from 'virtual:reload-on-update-in-view';
 import injectedStyle from './injected.css?inline';
 import { Toaster } from 'react-hot-toast';
+import Slack from '@pages/content/ui/slack';
 
 refreshOnUpdate('pages/content');
 
@@ -103,18 +104,22 @@ shadowRoot.appendChild(styleElement);
 setTimeout(() => {
   createRoot(rootIntoShadow).render(
     <>
-      <App />
+      {window.location.host === 'app.slack.com' ? <Slack /> : <App />}
       <Toaster
         toastOptions={{
           success: {
             style: {
+              color: 'white',
               padding: '10px',
+              fontWeight: '600',
               background: 'green',
               borderRadius: '12px',
             },
           },
           error: {
             style: {
+              color: 'white',
+              fontWeight: '600',
               padding: '10px',
               borderRadius: '12px',
               background: 'red',

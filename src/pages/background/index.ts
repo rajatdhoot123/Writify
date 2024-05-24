@@ -12,6 +12,9 @@ reloadOnUpdate('pages/content/style.scss');
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   switch (request.action) {
+    case 'OPEN_SETTING_PAGE':
+      chrome.runtime.openOptionsPage();
+      break;
     case 'signUpWithWeb':
       {
         const url = request.payload.url;
@@ -112,5 +115,21 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         enabled: false,
       });
     }
+  }
+});
+
+chrome.tabs.onActivated.addListener(function (info) {
+  chrome.tabs.query({ active: true }, function (tabs) {
+    chrome.tabs.sendMessage(tabs[0].id, { action: 'UPDATE_TAB' });
+  });
+});
+
+chrome.runtime.onInstalled.addListener(function (object) {
+  const internalUrl = chrome.runtime.getURL('src/pages/options/index.html');
+
+  if (object.reason === chrome.runtime.OnInstalledReason.INSTALL) {
+    chrome.tabs.create({ url: internalUrl }, function (tab) {
+      console.log('New tab launched with http://yoursite.com/');
+    });
   }
 });

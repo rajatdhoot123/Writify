@@ -15,7 +15,6 @@ const Dropdown = ({ activePrompt, promptList, dispatch }) => {
           height: '36px',
           cursor: 'pointer',
           color: 'rgb(29, 161, 242)',
-          fontSize: ' 12px',
           fontWeight: '700',
           fontFamily:
             'TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',

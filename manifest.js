@@ -14,7 +14,8 @@ const manifest = {
    */
   name: 'Tweetify - Tweet writer & scraper',
   version: packageJson.version,
-  description: 'Tweetify helps you write five times better tweets with custom agents and scrape tweets and threads for multiple use cases.',
+  description:
+    'Tweetify helps you write five times better tweets with custom agents and scrape tweets and threads for multiple use cases.',
   permissions: ['storage', 'sidePanel', 'tabs'],
   side_panel: {
     default_path: 'src/pages/sidepanel/index.html',
@@ -34,14 +35,14 @@ const manifest = {
   content_scripts: [
     {
       // matches: ['http://*/*', 'https://*/*', '<all_urls>'], For all urls
-      matches: ['https://*.twitter.com/*', 'https://*.x.com/*'],
+      matches: ['https://*.twitter.com/*', 'https://*.x.com/*', 'https://*.slack.com/*'],
       js: ['src/pages/contentInjected/index.js'],
       // KEY for cache invalidation
       css: ['assets/css/contentStyle<KEY>.chunk.css'],
     },
     {
       // matches: ['http://*/*', 'https://*/*', '<all_urls>'], For all urls
-      matches: ['https://*.twitter.com/*', 'https://*.x.com/*'],
+      matches: ['https://*.twitter.com/*', 'https://*.x.com/*', 'https://*.slack.com/*'],
       js: ['src/pages/contentUI/index.js'],
     },
   ],
