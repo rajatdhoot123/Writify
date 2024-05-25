@@ -58,7 +58,7 @@ export default function NewApp() {
   // const [activeUrl, setActiveUrl] = useState(document.location.href);
   const [refresh, setRefresh] = useState(null);
 
-  const [chatModel] = useChatModel({ ai_key: state.ai_key, model: state.ai_model, model_type: state.model_type });
+  const [chatModel] = useChatModel(state);
 
   useEffect(() => {
     const toolSuit_id = 'tweetify-ai';
@@ -109,17 +109,17 @@ export default function NewApp() {
   }, []);
 
   const handleGenerateAiTweet = async event => {
-    if (!state.ai_key) {
+    if (!(state.ai_model && (state.model_type === 'ollama' ? state.ollama_host : state.ai_key))) {
       return toast.custom(
         <div className="bg-red-500 font-semibold p-2 text-white rounded-md z-[999] relative text-sm">
-          Set Open AI config key click{' '}
+          Select model and api key or host from
           <button
             onClick={async () => {
               await chrome.runtime.sendMessage({
                 action: 'OPEN_SETTING_PAGE',
               });
             }}>
-            Settings
+            setting button
           </button>
         </div>,
       );

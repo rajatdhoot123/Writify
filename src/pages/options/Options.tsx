@@ -57,8 +57,14 @@ const Options: React.FC = () => {
         <Input
           type="text"
           value={state.ai_key}
-          onChange={e => dispatch({ type: 'SET_AI_KEY', payload: e.target.value })}
-          placeholder={GPT_MODELS.find(model => model.value === state.ai_model) ? 'Enter GPT Key' : 'Enter Ollama Host'}
+          onChange={e => dispatch({ type: 'SET_OPENAI_KEY', payload: e.target.value })}
+          placeholder="Enter Open Ai Chat GPT Key"
+        />
+        <Input
+          type="text"
+          value={state.ollama_host}
+          onChange={e => dispatch({ type: 'SET_OLLAMA_HOST', payload: e.target.value })}
+          placeholder={'Enter Ollama Host'}
         />
       </div>
       <div className="w-1/2 p-5">

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { findClosestParent, findClosest, clearContent } from '@root/src/lib/extension';
 import useStore from '@root/src/lib/store';
-import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { createPortal } from 'react-dom';
 import Loader from '@root/src/components/loader';
@@ -79,7 +78,7 @@ const Slack = () => {
   const [refresh, setRefresh] = useState(window.crypto.randomUUID());
   const [state] = useStore();
 
-  const [chatModel] = useChatModel({ ai_key: state.ai_key, model: state.ai_model, model_type: state.model_type });
+  const [chatModel] = useChatModel(state);
 
   const handleGenerateAiTweet = useCallback(
     async event => {

@@ -6,7 +6,7 @@ const getModelType = model => {
   if (OLLAMA_MODELS.find(({ value }) => value === model)) {
     return 'ollama';
   } else if (GPT_MODELS.find(({ value }) => value === model)) {
-    return 'ollama';
+    return 'gpt';
   } else {
     return '';
   }
@@ -14,10 +14,15 @@ const getModelType = model => {
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'SET_AI_KEY':
+    case 'SET_OPENAI_KEY':
       return {
         ...state,
         ai_key: action.payload,
+      };
+    case 'SET_OLLAMA_HOST':
+      return {
+        ...state,
+        ollama_host: action.payload,
       };
     case 'SET_CONFIG_TOGGLE':
       return {
@@ -59,6 +64,7 @@ const useStore = () => {
     isStateLoaded: false,
     ai_model: '',
     ai_key: '',
+    ollama_host: '',
     model_type: '',
     promptList: [
       {
