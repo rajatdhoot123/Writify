@@ -82,17 +82,17 @@ const Slack = () => {
 
   const handleGenerateAiTweet = useCallback(
     async event => {
-      if (!state.openAiKey) {
+      if (!(state.ai_model && (state.model_type === 'ollama' ? state.ollama_host : state.ai_key))) {
         return toast.custom(
           <div className="bg-red-500 font-semibold p-2 text-white rounded-md z-[999] relative text-sm">
-            Set Open AI config key click{' '}
+            Select model and api key or host from
             <button
               onClick={async () => {
                 await chrome.runtime.sendMessage({
                   action: 'OPEN_SETTING_PAGE',
                 });
               }}>
-              Settings
+              setting button
             </button>
           </div>,
         );
