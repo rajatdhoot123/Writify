@@ -47,6 +47,12 @@ const manifest = {
     },
   ],
   devtools_page: 'src/pages/devtools/index.html',
+  host_permissions: [
+    'http://localhost/*',
+    'http://127.0.0.1/*',
+    'http://localhost:11434/*',
+    'http://127.0.0.1:11434/*',
+  ],
   web_accessible_resources: [
     {
       resources: ['assets/js/*.js', 'assets/css/*.css', 'icon128.png', 'icon32.png', 'assets/png/*.png'],
