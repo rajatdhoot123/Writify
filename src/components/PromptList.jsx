@@ -17,6 +17,9 @@ const PromptList = ({ dispatch, activePrompt, promptList = [] }) => {
 
   const deleteItem = value => {
     const updatedItems = promptList.filter(prompt => prompt.value !== value);
+    if (activePrompt === value) {
+      dispatch({ type: 'SET_ACTIVE_PROMPT', payload: updatedItems[0].value });
+    }
     dispatch({ type: 'SET_PROMPT_LIST', payload: updatedItems });
     chrome?.storage?.sync?.set({ promptList: updatedItems });
   };
