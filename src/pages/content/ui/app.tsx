@@ -4,10 +4,10 @@
 /* eslint-disable react/prop-types */
 import { getCurrentUser } from '@root/src/lib/supabase';
 import Dropdown from '@root/src/components/Dropdown';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useStore from '@root/src/lib/store';
-import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
+import useChatModel from '@root/src/lib/useChatModel';
 import { createPortal } from 'react-dom';
 import { actionTypes } from '../../../constant/actionTypes';
 import {
@@ -20,7 +20,6 @@ import {
 import Scrapper from '@root/src/components/Scrapper';
 import toast from 'react-hot-toast';
 import Loader from '@root/src/components/loader';
-
 
 const AiTweetToolbar = ({ dispatch, state, handleGenerateAiTweet, loader }) => {
   return (
@@ -59,14 +58,7 @@ export default function NewApp() {
   // const [activeUrl, setActiveUrl] = useState(document.location.href);
   const [refresh, setRefresh] = useState(null);
 
-  const chatModel = useCallback(
-    () => {
-      return new ChatOpenAI({
-        apiKey: import.meta.env.VITE_OPENAI_API_KEY || state.openAiKey,
-      });
-    },
-    [state.openAiKey], // Add an empty array as the second argument
-  );
+  const [chatModel] = useChatModel({ ai_key: state.ai_key, model: state.ai_model, model_type: state.model_type });
 
   useEffect(() => {
     const toolSuit_id = 'tweetify-ai';
@@ -117,7 +109,7 @@ export default function NewApp() {
   }, []);
 
   const handleGenerateAiTweet = async event => {
-    if (!state.openAiKey) {
+    if (!state.ai_key) {
       return toast.custom(
         <div className="bg-red-500 font-semibold p-2 text-white rounded-md z-[999] relative text-sm">
           Set Open AI config key click{' '}

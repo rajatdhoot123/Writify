@@ -7,7 +7,8 @@ import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { createPortal } from 'react-dom';
 import Loader from '@root/src/components/loader';
-
+import toast from 'react-hot-toast';
+import useChatModel from '@root/src/lib/useChatModel';
 const toolSuit_id = 'slacker-ai';
 
 const AiTweetToolbar = ({ handleGenerateAiTweet, loader }) => {
@@ -76,24 +77,26 @@ const AiTweetToolbar = ({ handleGenerateAiTweet, loader }) => {
 const Slack = () => {
   const [loader, setLoader] = useState(false);
   const [refresh, setRefresh] = useState(window.crypto.randomUUID());
-  const [state, dispatch] = useStore();
+  const [state] = useStore();
 
-  const chatModel = useCallback(
-    () => {
-      return new ChatOpenAI({
-        apiKey: import.meta.env.VITE_OPENAI_API_KEY || state.openAiKey,
-      });
-    },
-    [state.openAiKey], // Add an empty array as the second argument
-  );
+  const [chatModel] = useChatModel({ ai_key: state.ai_key, model: state.ai_model, model_type: state.model_type });
 
   const handleGenerateAiTweet = useCallback(
     async event => {
       if (!state.openAiKey) {
-        await chrome.runtime.sendMessage({
-          action: 'OPEN_SETTING_PAGE',
-        });
-        return;
+        return toast.custom(
+          <div className="bg-red-500 font-semibold p-2 text-white rounded-md z-[999] relative text-sm">
+            Set Open AI config key click{' '}
+            <button
+              onClick={async () => {
+                await chrome.runtime.sendMessage({
+                  action: 'OPEN_SETTING_PAGE',
+                });
+              }}>
+              Settings
+            </button>
+          </div>,
+        );
       }
 
       setLoader(true);

@@ -1,12 +1,23 @@
 import { useEffect, useReducer } from 'react';
 import { getStorageData, setStorageData } from '@root/src/lib/helper';
+import { OLLAMA_MODELS, GPT_MODELS } from '@root/src/constant';
+
+const getModelType = model => {
+  if (OLLAMA_MODELS.find(({ value }) => value === model)) {
+    return 'ollama';
+  } else if (GPT_MODELS.find(({ value }) => value === model)) {
+    return 'ollama';
+  } else {
+    return '';
+  }
+};
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'SET_OPEN_AI_KEY':
+    case 'SET_AI_KEY':
       return {
         ...state,
-        openAiKey: action.payload,
+        ai_key: action.payload,
       };
     case 'SET_CONFIG_TOGGLE':
       return {
@@ -33,6 +44,12 @@ function reducer(state, action) {
         ...state,
         ...action.payload,
       };
+    case 'SET_AI_MODEL':
+      return {
+        ...state,
+        ai_model: action.payload,
+        model_type: getModelType(action.payload),
+      };
   }
 }
 
@@ -40,7 +57,9 @@ const useStore = () => {
   const [state, dispatch] = useReducer(reducer, {
     isStateSync: crypto.randomUUID(),
     isStateLoaded: false,
-    openAiKey: '',
+    ai_model: '',
+    ai_key: '',
+    model_type: '',
     promptList: [
       {
         value: 'All-in-One AI Master Agent for Writing Tweets',
