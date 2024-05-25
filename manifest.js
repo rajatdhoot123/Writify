@@ -16,7 +16,7 @@ const manifest = {
   version: packageJson.version,
   description:
     'Tweetify helps you write five times better tweets with custom agents and scrape tweets and threads for multiple use cases.',
-  permissions: ['storage', 'sidePanel', 'tabs'],
+  permissions: ['storage', 'sidePanel', 'tabs', 'declarativeNetRequest'],
   side_panel: {
     default_path: 'src/pages/sidepanel/index.html',
   },
@@ -48,10 +48,10 @@ const manifest = {
   ],
   devtools_page: 'src/pages/devtools/index.html',
   host_permissions: [
-    'http://localhost/*',
-    'http://127.0.0.1/*',
-    'http://localhost:11434/*',
-    'http://127.0.0.1:11434/*',
+    'http://*:11434/api/tags',
+    'http://*:11434/api/generate',
+    'https://*:11434/api/tags',
+    'https://*:11434/api/generate',
   ],
   web_accessible_resources: [
     {
