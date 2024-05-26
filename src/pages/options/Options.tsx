@@ -19,10 +19,16 @@ const Options: React.FC = () => {
 
   useEffect(() => {
     if (state?.ai_model) {
-      dispatch({ type: 'INIT_OLLAMA', payload: state.ai_model });
-      dispatch({ type: 'INIT_OPENAI', payload: state.ai_model });
+      chrome.runtime.sendMessage({
+        action: 'INIT_OLLAMA',
+        payload: { ollama_host: state.ollama_host, ai_model: state.ai_model },
+      });
+      chrome.runtime.sendMessage({
+        action: 'INIT_OPENAI',
+        payload: { ai_key: state.ai_key, ai_model: state.ai_model },
+      });
     }
-  }, [dispatch, state.ai_model]);
+  }, [state.ai_key, state.ai_model, state.ollama_host]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -35,7 +41,6 @@ const Options: React.FC = () => {
           const { models } = await response.json();
           dispatch({ type: 'SET_OLLAMA_MODELS', payload: models.map(m => ({ value: m.model, label: m.name })) });
         } catch (err) {
-          console.log(err);
           dispatch({ type: 'SET_OLLAMA_MODELS', payload: [] });
           toast.error('Ollama is not connected');
         }
