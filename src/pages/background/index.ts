@@ -1,6 +1,9 @@
 import reloadOnUpdate from 'virtual:reload-on-update-in-background-script';
 import 'webextension-polyfill';
 import { chromeStorageKeys } from '@src/constant';
+import { ChatOpenAI } from '@langchain/openai';
+import { ChatOllama } from '@langchain/community/chat_models/ollama';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
 
 reloadOnUpdate('pages/background');
 
@@ -10,10 +13,69 @@ reloadOnUpdate('pages/background');
  */
 reloadOnUpdate('pages/content/style.scss');
 
+let ollama = null;
+let openai = null;
+
+const initOllama = ({ ollama_host, ai_model }) => {
+  if (ollama_host && ai_model) {
+    ollama = new ChatOllama({
+      baseUrl: ollama_host, // Default value
+      model: ai_model, // Default value
+    });
+  }
+};
+
+const initOpenAi = ({ ai_key, ai_model }) => {
+  if (ai_key && ai_model) {
+    openai = new ChatOpenAI({
+      apiKey: ai_key, // Default value
+      model: ai_model, // Default value
+    });
+  }
+};
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   switch (request.action) {
+    case 'CALL_LLM':
+      (async () => {
+        try {
+          if (!ollama && request.payload.model_type === 'ollama') {
+            initOllama({ ollama_host: request.payload.ollama_host, ai_model: request.payload.ai_model });
+          }
+          if (!openai && request.payload.model_type === 'gpt') {
+            initOpenAi({ ai_key: request.payload.ai_key, ai_model: request.payload.ai_model });
+          }
+          const twitterPrompt = ChatPromptTemplate.fromMessages([
+            ['system', request.payload.promptList.find(prompt => prompt.value === request.payload.activePrompt).label],
+            ['user', '{input}'],
+          ]);
+          let response;
+          if (request.payload.model_type === 'ollama') {
+            const chain = twitterPrompt.pipe(ollama);
+            response = await chain.invoke({ input: request.payload.input });
+          } else if (request.payload.model_type === 'gpt') {
+            const chain = twitterPrompt.pipe(openai);
+            response = await chain.invoke({ input: request.payload.input });
+          }
+          sendResponse(response.content);
+        } catch (error) {
+          console.log(error);
+          sendResponse({ error: error.message });
+        }
+      })();
+      return true;
+      break;
+    case 'INIT_OLLAMA':
+      initOllama({ ollama_host: request.payload.ollama_host, ai_model: request.payload.ai_model });
+      return true;
+      break;
+    case 'INIT_OPENAI':
+      initOpenAi({ ai_key: request.payload.ai_key, ai_model: request.payload.ai_model });
+      return true;
+      break;
     case 'OPEN_SETTING_PAGE':
       chrome.runtime.openOptionsPage();
+      return true;
       break;
     case 'signUpWithWeb':
       {
@@ -132,4 +194,32 @@ chrome.runtime.onInstalled.addListener(function (object) {
       console.log('New tab launched with http://yoursite.com/');
     });
   }
+});
+
+const allResourceTypes = Object.values(chrome.declarativeNetRequest.ResourceType);
+
+const domain = '127.0.0.1:11434';
+const rules = [
+  {
+    id: 2,
+    priority: 1,
+    action: {
+      type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+      requestHeaders: [
+        {
+          header: 'origin',
+          operation: chrome.declarativeNetRequest.HeaderOperation.SET,
+          value: `http://${domain}`,
+        },
+      ],
+    },
+    condition: {
+      resourceTypes: allResourceTypes,
+    },
+  },
+];
+
+chrome.declarativeNetRequest.updateDynamicRules({
+  removeRuleIds: rules.map(rule => rule.id), // remove existing rules
+  addRules: rules,
 });

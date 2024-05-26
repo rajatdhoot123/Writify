@@ -6,7 +6,6 @@ import { getCurrentUser } from '@root/src/lib/supabase';
 import Dropdown from '@root/src/components/Dropdown';
 import { useEffect, useState } from 'react';
 import useStore from '@root/src/lib/store';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
 import useChatModel from '@root/src/lib/useChatModel';
 import { createPortal } from 'react-dom';
 import { actionTypes } from '../../../constant/actionTypes';
@@ -20,6 +19,27 @@ import {
 import Scrapper from '@root/src/components/Scrapper';
 import toast from 'react-hot-toast';
 import Loader from '@root/src/components/loader';
+
+function callLLM(state, input) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        action: 'CALL_LLM',
+        payload: {
+          ...state,
+          input: input,
+        },
+      },
+      function (response) {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(response);
+        }
+      },
+    );
+  });
+}
 
 const AiTweetToolbar = ({ dispatch, state, handleGenerateAiTweet, loader }) => {
   return (
@@ -130,21 +150,27 @@ export default function NewApp() {
 
       const input = (contentEditable as HTMLElement).textContent;
 
-      const twitterPrompt = ChatPromptTemplate.fromMessages([
-        ['system', state.promptList.find(prompt => prompt.value === state.activePrompt).label],
-        ['user', '{input}'],
-      ]);
-      const chain = twitterPrompt.pipe(chatModel);
-      const response: any = await chain.invoke({
-        input,
-      });
+      // const twitterPrompt = ChatPromptTemplate.fromMessages([
+      //   ['system', state.promptList.find(prompt => prompt.value === state.activePrompt).label],
+      //   ['user', '{input}'],
+      // ]);
+
+      // const chain = twitterPrompt.pipe(chatModel);
+
+      // const response: any = await chain.invoke({
+      //   input,
+      // });
+
+      const response: any = await callLLM(state, input);
 
       if (contentEditable) {
         contentEditable.focus();
         setTimeout(() => {
           clearContent(contentEditable);
           // Dispatch an input event to simulate user input
-          contentEditable.dispatchEvent(new InputEvent('textInput', { data: response.content, bubbles: true }));
+          contentEditable.dispatchEvent(
+            new InputEvent('textInput', { data: response.error || response, bubbles: true }),
+          );
         }, 200);
       }
     } catch (err) {

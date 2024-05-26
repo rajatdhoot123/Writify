@@ -2,7 +2,6 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 // src/components/NotionLikeList.js
 import React from 'react';
-import toast from 'react-hot-toast';
 import { Input } from '@root/src/components/ui/input';
 import { Textarea } from '@root/src/components/ui/textarea';
 

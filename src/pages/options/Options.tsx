@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import '@pages/options/Options.css';
 import TweetConfig from '@root/src/components/TweetConfig';
-import useStore from '@root/src/lib/store';
+import useStore, { getModelType } from '@root/src/lib/store';
 import {
   Select,
   SelectContent,
@@ -23,10 +23,28 @@ const Options: React.FC = () => {
     });
   };
 
+  console.log(state);
+
   return (
     <div className="flex container mx-auto my-12 ">
       <div className="space-y-4 w-1/2 p-5">
-        <Select value={state.ai_model} onValueChange={e => dispatch({ type: 'SET_AI_MODEL', payload: e })}>
+        <Select
+          value={state.ai_model}
+          onValueChange={async e => {
+            dispatch({ type: 'SET_AI_MODEL', payload: e });
+            if (getModelType(e) === 'gpt') {
+              await chrome.runtime.sendMessage({
+                action: 'INIT_OPENAI',
+                payload: state,
+              });
+            } else if (getModelType(e) === 'ollama') {
+              await chrome.runtime.sendMessage({
+                action: 'INIT_OLLAMA',
+                payload: state,
+              });
+            }
+            // dispatch({ type: getModelType(e) });
+          }}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select Modals" />
           </SelectTrigger>
@@ -57,13 +75,39 @@ const Options: React.FC = () => {
         <Input
           type="text"
           value={state.ai_key}
-          onChange={e => dispatch({ type: 'SET_OPENAI_KEY', payload: e.target.value })}
+          onChange={async e => {
+            dispatch({ type: 'SET_OPENAI_KEY', payload: e.target.value });
+            if (getModelType(e) === 'gpt') {
+              await chrome.runtime.sendMessage({
+                action: 'INIT_OPENAI',
+                payload: state,
+              });
+            } else if (getModelType(e) === 'ollama') {
+              await chrome.runtime.sendMessage({
+                action: 'INIT_OLLAMA',
+                payload: state,
+              });
+            }
+          }}
           placeholder="Enter Open Ai Chat GPT Key"
         />
         <Input
           type="text"
           value={state.ollama_host}
-          onChange={e => dispatch({ type: 'SET_OLLAMA_HOST', payload: e.target.value })}
+          onChange={async e => {
+            dispatch({ type: 'SET_OLLAMA_HOST', payload: e.target.value });
+            if (getModelType(e) === 'gpt') {
+              await chrome.runtime.sendMessage({
+                action: 'INIT_OPENAI',
+                payload: state,
+              });
+            } else if (getModelType(e) === 'ollama') {
+              await chrome.runtime.sendMessage({
+                action: 'INIT_OLLAMA',
+                payload: state,
+              });
+            }
+          }}
           placeholder={'Enter Ollama Host'}
         />
       </div>

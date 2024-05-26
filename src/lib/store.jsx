@@ -2,7 +2,7 @@ import { useEffect, useReducer } from 'react';
 import { getStorageData, setStorageData } from '@root/src/lib/helper';
 import { OLLAMA_MODELS, GPT_MODELS } from '@root/src/constant';
 
-const getModelType = model => {
+export const getModelType = model => {
   if (OLLAMA_MODELS.find(({ value }) => value === model)) {
     return 'ollama';
   } else if (GPT_MODELS.find(({ value }) => value === model)) {
