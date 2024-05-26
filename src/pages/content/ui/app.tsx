@@ -19,27 +19,7 @@ import {
 import Scrapper from '@root/src/components/Scrapper';
 import toast from 'react-hot-toast';
 import Loader from '@root/src/components/loader';
-
-function callLLM(state, input) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      {
-        action: 'CALL_LLM',
-        payload: {
-          ...state,
-          input: input,
-        },
-      },
-      function (response) {
-        if (chrome.runtime.lastError) {
-          reject(chrome.runtime.lastError);
-        } else {
-          resolve(response);
-        }
-      },
-    );
-  });
-}
+import { callLLM } from '@root/src/lib/helper';
 
 const AiTweetToolbar = ({ dispatch, state, handleGenerateAiTweet, loader }) => {
   return (
@@ -147,17 +127,6 @@ export default function NewApp() {
       const contentEditable = findClosest(document.getElementById('ai-tweet-button'), '[contenteditable="true"]');
 
       const input = (contentEditable as HTMLElement).textContent;
-
-      // const twitterPrompt = ChatPromptTemplate.fromMessages([
-      //   ['system', state.promptList.find(prompt => prompt.value === state.activePrompt).label],
-      //   ['user', '{input}'],
-      // ]);
-
-      // const chain = twitterPrompt.pipe(chatModel);
-
-      // const response: any = await chain.invoke({
-      //   input,
-      // });
 
       const response: any = await callLLM(state, input);
 

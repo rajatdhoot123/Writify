@@ -11,3 +11,24 @@ export const setStorageData = data =>
       chrome.runtime.lastError ? reject(Error(chrome.runtime.lastError.message)) : resolve(),
     ),
   );
+
+export function callLLM(state, input) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        action: 'CALL_LLM',
+        payload: {
+          ...state,
+          input: input,
+        },
+      },
+      function (response) {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(response);
+        }
+      },
+    );
+  });
+}

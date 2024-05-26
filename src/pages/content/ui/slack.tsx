@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { findClosestParent, findClosest, clearContent } from '@root/src/lib/extension';
 import useStore, { getModelType } from '@root/src/lib/store';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { createPortal } from 'react-dom';
 import Loader from '@root/src/components/loader';
 import toast from 'react-hot-toast';
+import { callLLM } from '@root/src/lib/helper';
 
 const toolSuit_id = 'slacker-ai';
 
@@ -78,9 +78,6 @@ const Slack = () => {
   const [refresh, setRefresh] = useState(window.crypto.randomUUID());
   const [state] = useStore();
 
-  const useChatModel: any = [{ ad: 'dakf' }];
-  const [chatModel] = useChatModel();
-
   const handleGenerateAiTweet = useCallback(
     async event => {
       if (!(state.ai_model && (getModelType(state)?.[0]?.type === 'ollama' ? state.ollama_host : state.ai_key))) {
@@ -105,21 +102,14 @@ const Slack = () => {
 
         const input = (contentEditable as HTMLElement).textContent;
 
-        const twitterPrompt = ChatPromptTemplate.fromMessages([
-          ['system', state.promptList.find(prompt => prompt.value === state.activePrompt).label],
-          ['user', '{input}'],
-        ]);
-        const chain = twitterPrompt.pipe(chatModel);
-        const response: any = await chain.invoke({
-          input,
-        });
+        const response: any = await callLLM(state, input);
 
         if (contentEditable) {
           contentEditable.focus();
           setTimeout(() => {
             clearContent(contentEditable);
             // Dispatch an input event to simulate user input
-            contentEditable.querySelector('p').innerText = response.content;
+            contentEditable.querySelector('p').innerText = response.error || response;
           }, 200);
         }
       } catch (err) {
@@ -128,7 +118,7 @@ const Slack = () => {
         setLoader(false);
       }
     },
-    [chatModel, state.activePrompt, state.openAiKey, state.promptList],
+    [state],
   );
 
   useEffect(() => {
