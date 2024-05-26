@@ -2,12 +2,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react';
 import { findClosestParent, findClosest, clearContent } from '@root/src/lib/extension';
-import useStore from '@root/src/lib/store';
+import useStore, { getModelType } from '@root/src/lib/store';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { createPortal } from 'react-dom';
 import Loader from '@root/src/components/loader';
 import toast from 'react-hot-toast';
-import useChatModel from '@root/src/lib/useChatModel';
+
 const toolSuit_id = 'slacker-ai';
 
 const AiTweetToolbar = ({ handleGenerateAiTweet, loader }) => {
@@ -78,11 +78,12 @@ const Slack = () => {
   const [refresh, setRefresh] = useState(window.crypto.randomUUID());
   const [state] = useStore();
 
-  const [chatModel] = useChatModel(state);
+  const useChatModel: any = [{ ad: 'dakf' }];
+  const [chatModel] = useChatModel();
 
   const handleGenerateAiTweet = useCallback(
     async event => {
-      if (!(state.ai_model && (state.model_type === 'ollama' ? state.ollama_host : state.ai_key))) {
+      if (!(state.ai_model && (getModelType(state)?.[0]?.type === 'ollama' ? state.ollama_host : state.ai_key))) {
         return toast.custom(
           <div className="bg-red-500 font-semibold p-2 text-white rounded-md z-[999] relative text-sm">
             Select model and api key or host from

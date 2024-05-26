@@ -4,6 +4,7 @@ import { chromeStorageKeys } from '@src/constant';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatOllama } from '@langchain/community/chat_models/ollama';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { getModelType } from '@root/src/lib/store';
 
 reloadOnUpdate('pages/background');
 
@@ -39,10 +40,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     case 'CALL_LLM':
       (async () => {
         try {
-          if (!ollama && request.payload.model_type === 'ollama') {
+          if (!ollama && getModelType(request.payload)?.[0]?.type === 'ollama') {
             initOllama({ ollama_host: request.payload.ollama_host, ai_model: request.payload.ai_model });
           }
-          if (!openai && request.payload.model_type === 'gpt') {
+          if (!openai && getModelType(request.payload)?.[0]?.type === 'gpt') {
             initOpenAi({ ai_key: request.payload.ai_key, ai_model: request.payload.ai_model });
           }
           const twitterPrompt = ChatPromptTemplate.fromMessages([
@@ -50,10 +51,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             ['user', '{input}'],
           ]);
           let response;
-          if (request.payload.model_type === 'ollama') {
+          if (getModelType(request.payload)?.[0]?.type === 'ollama') {
             const chain = twitterPrompt.pipe(ollama);
             response = await chain.invoke({ input: request.payload.input });
-          } else if (request.payload.model_type === 'gpt') {
+          } else if (getModelType(request.payload)?.[0]?.type === 'gpt') {
             const chain = twitterPrompt.pipe(openai);
             response = await chain.invoke({ input: request.payload.input });
           }
@@ -68,11 +69,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     case 'INIT_OLLAMA':
       initOllama({ ollama_host: request.payload.ollama_host, ai_model: request.payload.ai_model });
       return true;
-      break;
     case 'INIT_OPENAI':
       initOpenAi({ ai_key: request.payload.ai_key, ai_model: request.payload.ai_model });
       return true;
-      break;
     case 'OPEN_SETTING_PAGE':
       chrome.runtime.openOptionsPage();
       return true;

@@ -1,7 +1,7 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import '@pages/options/Options.css';
 import TweetConfig from '@root/src/components/TweetConfig';
-import useStore, { getModelType } from '@root/src/lib/store';
+import useStore from '@root/src/lib/store';
 import {
   Select,
   SelectContent,
@@ -12,18 +12,36 @@ import {
   SelectValue,
 } from '@root/src/components/ui/select';
 import { Input } from '@root/src/components/ui/input';
-import { OLLAMA_MODELS, GPT_MODELS } from '@root/src/constant';
+import toast from 'react-hot-toast';
 
 const Options: React.FC = () => {
   const [state, dispatch] = useStore();
 
-  const handleResetOpenAi = () => {
-    chrome.storage.sync.remove(['open_ai_key'], function () {
-      dispatch({ type: 'SET_OPEN_AI_KEY', payload: '' });
-    });
-  };
+  useEffect(() => {
+    if (state?.ai_model) {
+      dispatch({ type: 'INIT_OLLAMA', payload: state.ai_model });
+      dispatch({ type: 'INIT_OPENAI', payload: state.ai_model });
+    }
+  }, [dispatch, state.ai_model]);
 
-  console.log(state);
+  useEffect(() => {
+    setTimeout(() => {
+      (async () => {
+        try {
+          const response = await fetch(`${state.ollama_host}/api/tags`, {
+            method: 'GET',
+            credentials: 'include',
+          });
+          const { models } = await response.json();
+          dispatch({ type: 'SET_OLLAMA_MODELS', payload: models.map(m => ({ value: m.model, label: m.name })) });
+        } catch (err) {
+          console.log(err);
+          dispatch({ type: 'SET_OLLAMA_MODELS', payload: [] });
+          toast.error('Ollama is not connected');
+        }
+      })();
+    }, 2000);
+  }, [dispatch, state.ollama_host]);
 
   return (
     <div className="flex container mx-auto my-12 ">
@@ -32,34 +50,13 @@ const Options: React.FC = () => {
           value={state.ai_model}
           onValueChange={async e => {
             dispatch({ type: 'SET_AI_MODEL', payload: e });
-            if (getModelType(e) === 'gpt') {
-              await chrome.runtime.sendMessage({
-                action: 'INIT_OPENAI',
-                payload: state,
-              });
-            } else if (getModelType(e) === 'ollama') {
-              await chrome.runtime.sendMessage({
-                action: 'INIT_OLLAMA',
-                payload: state,
-              });
-            }
-            // dispatch({ type: getModelType(e) });
           }}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select Modals" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              {[
-                {
-                  label: 'Select AI Models',
-                  value: GPT_MODELS,
-                },
-                {
-                  label: 'Ollama',
-                  value: OLLAMA_MODELS,
-                },
-              ].map(({ label, value }) => (
+              {state.all_ai_models.map(({ label, value }) => (
                 <Fragment key={value}>
                   <SelectLabel>{label}</SelectLabel>
                   {value.map(({ label, value }) => (
@@ -77,17 +74,6 @@ const Options: React.FC = () => {
           value={state.ai_key}
           onChange={async e => {
             dispatch({ type: 'SET_OPENAI_KEY', payload: e.target.value });
-            if (getModelType(e) === 'gpt') {
-              await chrome.runtime.sendMessage({
-                action: 'INIT_OPENAI',
-                payload: state,
-              });
-            } else if (getModelType(e) === 'ollama') {
-              await chrome.runtime.sendMessage({
-                action: 'INIT_OLLAMA',
-                payload: state,
-              });
-            }
           }}
           placeholder="Enter Open Ai Chat GPT Key"
         />
@@ -96,17 +82,6 @@ const Options: React.FC = () => {
           value={state.ollama_host}
           onChange={async e => {
             dispatch({ type: 'SET_OLLAMA_HOST', payload: e.target.value });
-            if (getModelType(e) === 'gpt') {
-              await chrome.runtime.sendMessage({
-                action: 'INIT_OPENAI',
-                payload: state,
-              });
-            } else if (getModelType(e) === 'ollama') {
-              await chrome.runtime.sendMessage({
-                action: 'INIT_OLLAMA',
-                payload: state,
-              });
-            }
           }}
           placeholder={'Enter Ollama Host'}
         />
@@ -114,7 +89,6 @@ const Options: React.FC = () => {
       <div className="w-1/2 p-5">
         <TweetConfig
           openAiKey={state.openAiKey}
-          handleResetOpenAi={handleResetOpenAi}
           toggleModal={() => {
             dispatch({ type: 'SET_CONFIG_TOGGLE' });
           }}

@@ -1,19 +1,30 @@
 import { useEffect, useReducer } from 'react';
 import { getStorageData, setStorageData } from '@root/src/lib/helper';
-import { OLLAMA_MODELS, GPT_MODELS } from '@root/src/constant';
+import { GPT_MODELS } from '@root/src/constant';
 
-export const getModelType = model => {
-  if (OLLAMA_MODELS.find(({ value }) => value === model)) {
-    return 'ollama';
-  } else if (GPT_MODELS.find(({ value }) => value === model)) {
-    return 'gpt';
-  } else {
-    return '';
-  }
+export const getModelType = state => {
+  console.log(state);
+  return state.all_ai_models.filter(model => {
+    return model.value.find(({ value }) => value === state.ai_model);
+  });
 };
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'SET_OLLAMA_MODELS':
+      return {
+        ...state,
+        all_ai_models: state.all_ai_models.map(model => {
+          if (model.type === 'ollama') {
+            return {
+              ...model,
+              value: action.payload,
+            };
+          } else {
+            return model;
+          }
+        }),
+      };
     case 'SET_OPENAI_KEY':
       return {
         ...state,
@@ -53,8 +64,9 @@ function reducer(state, action) {
       return {
         ...state,
         ai_model: action.payload,
-        model_type: getModelType(action.payload),
       };
+    default:
+      return state;
   }
 }
 
@@ -64,8 +76,19 @@ const useStore = () => {
     isStateLoaded: false,
     ai_model: '',
     ai_key: '',
-    ollama_host: '',
-    model_type: '',
+    ollama_host: 'http://localhost:11434',
+    all_ai_models: [
+      {
+        label: 'Select AI Models',
+        type: 'gpt',
+        value: GPT_MODELS,
+      },
+      {
+        label: 'Ollama',
+        type: 'ollama',
+        value: [],
+      },
+    ],
     promptList: [
       {
         value: 'All-in-One AI Master Agent for Writing Tweets',
@@ -106,6 +129,7 @@ const useStore = () => {
     (async () => {
       if (!state.isStateLoaded) {
         const response = await getStorageData(Object.keys(state));
+
         dispatch({ type: 'SET_STATE', payload: { ...response, isStateLoaded: true } });
       }
     })();
