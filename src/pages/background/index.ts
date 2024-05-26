@@ -47,7 +47,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             initOpenAi({ ai_key: request.payload.ai_key, ai_model: request.payload.ai_model });
           }
           const twitterPrompt = ChatPromptTemplate.fromMessages([
-            ['system', request.payload.promptList.find(prompt => prompt.value === request.payload.activePrompt).label],
+            ['system', request.payload.promptList.find(prompt => prompt.value === request.payload.activePrompt).description],
             ['user', '{input}'],
           ]);
           let response;
