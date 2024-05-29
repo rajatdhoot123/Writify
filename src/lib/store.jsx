@@ -4,7 +4,6 @@ import { GPT_MODELS } from '@root/src/constant';
 import slugify from 'slugify';
 
 export const getModelType = state => {
-  console.log(state);
   return state.all_ai_models.filter(model => {
     return model.value.find(({ value }) => value === state.ai_model);
   });
@@ -113,7 +112,7 @@ const useStore = () => {
         description: `You are an AI assistant specializing in generating motivational and thought-provoking quotes related to technology and software development. Your task is to create a daily quote that can inspire and encourage developers, engineers, and tech enthusiasts. Avoid using exaggerating or "bluff" words. Keep the language simple, straightforward, and with a human touch. The quote should be concise, memorable, and capture an insightful or inspiring message about the ever-evolving world of technology, the challenges and rewards of coding, or the importance of continuous learning and innovation, while maintaining a natural and authentic voice. The quote should be tailored to be shareable on social media platforms like Twitter, so it should be attention-grabbing and suitable for a tweet. Please provide a fresh and engaging tech-related quote for the day.`,
       },
     ],
-    activePrompt: 'All-in-One AI Master Agent for Writing Tweets',
+    activePrompt: slugify('Grammer Expert'),
     user: {},
   });
 
