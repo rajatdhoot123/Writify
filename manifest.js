@@ -12,10 +12,10 @@ const manifest = {
    * if you want to support multiple languages, you can use the following reference
    * https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Internationalization
    */
-  name: 'Tweetify - Tweet writer & scraper',
+  name: 'Writify: Grow your Twitter audience, scrape thousands of tweets, and enhance your Slack messages',
   version: packageJson.version,
   description:
-    'Tweetify helps you write five times better tweets with custom agents and scrape tweets and threads for multiple use cases.',
+    'Writify helps you write five times better tweets with custom agents and scrape tweets and threads for multiple use cases. Plus, enhancing your Slack messenging is super handy !',
   permissions: ['storage', 'sidePanel', 'tabs', 'declarativeNetRequest'],
   side_panel: {
     default_path: 'src/pages/sidepanel/index.html',
