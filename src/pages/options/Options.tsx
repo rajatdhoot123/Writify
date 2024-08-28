@@ -78,7 +78,7 @@ const Options: React.FC = () => {
           type="text"
           value={state.ai_key}
           onChange={async e => {
-            dispatch({ type: 'SET_OPENAI_KEY', payload: e.target.value });
+            dispatch({ type: 'SET_API_KEY', payload: e.target.value });
           }}
           placeholder="Enter Open Ai Chat GPT Key"
         />

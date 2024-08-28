@@ -52,6 +52,7 @@ const manifest = {
     'http://*:11434/api/generate',
     'https://*:11434/api/tags',
     'https://*:11434/api/generate',
+    'https://api.anthropic.com/v1/messages',
   ],
   web_accessible_resources: [
     {

@@ -1,6 +1,6 @@
 import { useEffect, useReducer } from 'react';
 import { getStorageData, setStorageData } from '@root/src/lib/helper';
-import { GPT_MODELS } from '@root/src/constant';
+import { GPT_MODELS, CLAUDE_MODELS } from '@root/src/constant';
 import slugify from 'slugify';
 
 export const getModelType = state => {
@@ -25,7 +25,7 @@ function reducer(state, action) {
           }
         }),
       };
-    case 'SET_OPENAI_KEY':
+    case 'SET_API_KEY':
       return {
         ...state,
         ai_key: action.payload,
@@ -84,6 +84,11 @@ const useStore = () => {
         value: GPT_MODELS,
       },
       {
+        label: 'Select AI Models',
+        type: 'claude',
+        value: CLAUDE_MODELS,
+      },
+      {
         label: 'Ollama',
         type: 'ollama',
         value: [],
@@ -117,7 +122,7 @@ const useStore = () => {
   });
 
   useEffect(() => {
-    chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener(async message => {
       switch (message.action) {
         case 'UPDATE_TAB': {
           const response = await getStorageData(Object.keys(state));

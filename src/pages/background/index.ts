@@ -1,37 +1,30 @@
 import reloadOnUpdate from 'virtual:reload-on-update-in-background-script';
 import 'webextension-polyfill';
 import { chromeStorageKeys } from '@src/constant';
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatOllama } from '@langchain/community/chat_models/ollama';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { getModelType } from '@root/src/lib/store';
 
 reloadOnUpdate('pages/background');
-
-/**
- * Extension reloading is necessary because the browser automatically caches the css.
- * If you do not use the css of the content script, please delete it.
- */
 reloadOnUpdate('pages/content/style.scss');
 
-let ollama = null;
-let openai = null;
+let ollamaConfig = null;
+let openaiConfig = null;
+let claudeConfig = null;
 
 const initOllama = ({ ollama_host, ai_model }) => {
   if (ollama_host && ai_model) {
-    ollama = new ChatOllama({
-      baseUrl: ollama_host, // Default value
-      model: ai_model, // Default value
-    });
+    ollamaConfig = { baseUrl: ollama_host, model: ai_model };
   }
 };
 
 const initOpenAi = ({ ai_key, ai_model }) => {
   if (ai_key && ai_model) {
-    openai = new ChatOpenAI({
-      apiKey: ai_key, // Default value
-      model: ai_model, // Default value
-    });
+    openaiConfig = { apiKey: ai_key, model: ai_model };
+  }
+};
+
+const initClaude = ({ ai_key, model }) => {
+  if (ai_key && model) {
+    claudeConfig = { apiKey: ai_key, model: model };
   }
 };
 
@@ -40,37 +33,50 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     case 'CALL_LLM':
       (async () => {
         try {
-          if (!ollama && getModelType(request.payload)?.[0]?.type === 'ollama') {
+          const modelType = getModelType(request.payload)?.[0]?.type;
+          console.log(request.payload, { modelType });
+          if (!ollamaConfig && modelType === 'ollama') {
             initOllama({ ollama_host: request.payload.ollama_host, ai_model: request.payload.ai_model });
           }
-          if (!openai && getModelType(request.payload)?.[0]?.type === 'gpt') {
+          if (!openaiConfig && modelType === 'gpt') {
             initOpenAi({ ai_key: request.payload.ai_key, ai_model: request.payload.ai_model });
           }
-          const twitterPrompt = ChatPromptTemplate.fromMessages([
-            ['system', request.payload.promptList.find(prompt => prompt.value === request.payload.activePrompt).description],
-            ['user', '{input}'],
-          ]);
-          let response;
-          if (getModelType(request.payload)?.[0]?.type === 'ollama') {
-            const chain = twitterPrompt.pipe(ollama);
-            response = await chain.invoke({ input: request.payload.input });
-          } else if (getModelType(request.payload)?.[0]?.type === 'gpt') {
-            const chain = twitterPrompt.pipe(openai);
-            response = await chain.invoke({ input: request.payload.input });
+          if (!claudeConfig && modelType === 'claude') {
+            console.log(request);
+            initClaude({ ai_key: request.payload.ai_key, model: request.payload.ai_model });
+
+            console.log({ claudeConfig });
           }
-          sendResponse(response.content);
+
+          const systemPrompt = request.payload.promptList.find(
+            prompt => prompt.value === request.payload.activePrompt,
+          ).description;
+          const userInput = request.payload.input;
+
+          let response;
+          if (modelType === 'ollama') {
+            response = await callOllama(ollamaConfig, systemPrompt, userInput);
+          } else if (modelType === 'gpt') {
+            response = await callOpenAI(openaiConfig, systemPrompt, userInput);
+          } else if (modelType === 'claude') {
+            response = await callClaude(claudeConfig, systemPrompt, userInput);
+          }
+
+          sendResponse(response);
         } catch (error) {
           console.log(error);
           sendResponse({ error: error.message });
         }
       })();
       return true;
-      break;
     case 'INIT_OLLAMA':
       initOllama({ ollama_host: request.payload.ollama_host, ai_model: request.payload.ai_model });
       return true;
     case 'INIT_OPENAI':
       initOpenAi({ ai_key: request.payload.ai_key, ai_model: request.payload.ai_model });
+      return true;
+    case 'INIT_CLAUDE':
+      initClaude({ api_key: request.payload.claude_key, model: request.payload.claude_model });
       return true;
     case 'OPEN_SETTING_PAGE':
       chrome.runtime.openOptionsPage();
@@ -179,7 +185,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
-chrome.tabs.onActivated.addListener(function (info) {
+chrome.tabs.onActivated.addListener(function () {
   chrome.tabs.query({ active: true }, function (tabs) {
     chrome.tabs.sendMessage(tabs[0].id, { action: 'UPDATE_TAB' });
   });
@@ -189,7 +195,7 @@ chrome.runtime.onInstalled.addListener(function (object) {
   const internalUrl = chrome.runtime.getURL('src/pages/options/index.html');
 
   if (object.reason === chrome.runtime.OnInstalledReason.INSTALL) {
-    chrome.tabs.create({ url: internalUrl }, function (tab) {
+    chrome.tabs.create({ url: internalUrl }, function () {
       console.log('New tab launched with http://yoursite.com/');
     });
   }
@@ -222,3 +228,57 @@ chrome.declarativeNetRequest.updateDynamicRules({
   removeRuleIds: rules.map(rule => rule.id), // remove existing rules
   addRules: rules,
 });
+
+async function callOllama(config, systemPrompt, userInput) {
+  const response = await fetch(`${config.baseUrl}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userInput },
+      ],
+    }),
+  });
+  const data = await response.json();
+  return data.message.content;
+}
+
+async function callOpenAI(config, systemPrompt, userInput) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userInput },
+      ],
+    }),
+  });
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+async function callClaude(config, systemPrompt, userInput) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': config.apiKey,
+      'anthropic-version': '2023-06-01', // Make sure this matches Anthropic's current API version
+    },
+    body: JSON.stringify({
+      model: 'claude-3-sonnet-20240229',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userInput }],
+    }),
+  });
+  const data = await response.json();
+  return data.content[0].text;
+}
