@@ -162,6 +162,11 @@ function useScrapingEvents({
         // Scraping ended
         setIsScrapingActive(false);
 
+        // Mark as force-stopped when explicitly provided
+        if (event.detail.forceStop) {
+          setForceStopped(true);
+        }
+
         if (event.detail.progress) {
           setScrapingProgress(event.detail.progress);
 
@@ -178,22 +183,32 @@ function useScrapingEvents({
       }
     };
 
+    // Named helpers for show/hide/keep-visible to ensure consistent cleanup and state sync
+    const handleShow = () => setIsVisible(true);
+    const handleHide = () => setIsVisible(false);
+    const handleKeepVisible = () => {
+      setIsVisible(true);
+      // If we are being asked to keep visible, also reflect stopped state in UI
+      setIsScrapingActive(false);
+      setForceStopped(true);
+    };
+
     // Register all event listeners
     window.addEventListener('tweet-scraped', handleTweetScraped);
     window.addEventListener('reset-tweet-viewer', resetViewer);
     window.addEventListener('scraping-state-change', handleScrapingStateChange);
-    window.addEventListener('show-tweet-viewer', () => setIsVisible(true));
-    window.addEventListener('hide-tweet-viewer', () => setIsVisible(false));
-    window.addEventListener('keep-viewer-visible', () => setIsVisible(true));
+    window.addEventListener('show-tweet-viewer', handleShow);
+    window.addEventListener('hide-tweet-viewer', handleHide);
+    window.addEventListener('keep-viewer-visible', handleKeepVisible);
 
     // Cleanup event listeners
     return () => {
       window.removeEventListener('tweet-scraped', handleTweetScraped);
       window.removeEventListener('reset-tweet-viewer', resetViewer);
       window.removeEventListener('scraping-state-change', handleScrapingStateChange);
-      window.removeEventListener('show-tweet-viewer', () => setIsVisible(true));
-      window.removeEventListener('hide-tweet-viewer', () => setIsVisible(false));
-      window.removeEventListener('keep-viewer-visible', () => setIsVisible(true));
+      window.removeEventListener('show-tweet-viewer', handleShow);
+      window.removeEventListener('hide-tweet-viewer', handleHide);
+      window.removeEventListener('keep-viewer-visible', handleKeepVisible);
     };
   }, [
     isScrapingActive,

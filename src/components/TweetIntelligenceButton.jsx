@@ -920,6 +920,23 @@ export default function TweetIntelligenceButton() {
           // Keep viewer visible
           window.dispatchEvent(new CustomEvent('keep-viewer-visible'));
 
+          // Ensure UI flips to inactive (race-safe final state event)
+          window.dispatchEvent(
+            new CustomEvent('scraping-state-change', {
+              detail: {
+                isActive: false,
+                progress: {
+                  total: scrapedDataRef.current.length,
+                  current: scrapedDataRef.current.length,
+                  isComplete: true,
+                },
+                keepVisible: true,
+                data: scrapedDataRef.current,
+                forceStop: true,
+              },
+            }),
+          );
+
           toast.success('Finished scraping thread');
           return;
         }
@@ -1042,6 +1059,23 @@ export default function TweetIntelligenceButton() {
           }),
         );
         window.dispatchEvent(new CustomEvent('keep-viewer-visible'));
+
+        // Ensure UI flips to inactive (race-safe final state event)
+        window.dispatchEvent(
+          new CustomEvent('scraping-state-change', {
+            detail: {
+              isActive: false,
+              progress: {
+                total: scrapedDataRef.current.length,
+                current: scrapedDataRef.current.length,
+                isComplete: true,
+              },
+              keepVisible: true,
+              data: scrapedDataRef.current,
+              forceStop: true,
+            },
+          }),
+        );
         toast.success('Finished scraping full thread with comments');
       }
     }, 1800);
