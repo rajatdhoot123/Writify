@@ -273,34 +273,23 @@ export default function TweetIntelligenceViewer() {
 
       setIsSending(true);
 
-      const MAX_LEN = 3800; // headroom below Telegram limit
-      const chunks = [];
-      let current = '';
-      for (const t of scrapedTweets) {
-        const line = `@${t.userId ?? t.userName}: ${t.text}`;
-        const next = current ? current + '\n' + line : line;
-        if (next.length > MAX_LEN) {
-          if (current) chunks.push(current);
-          current = line;
-        } else {
-          current = next;
-        }
-      }
-      if (current) chunks.push(current);
+      // Prepare JSON file of scraped tweets
+      const json = JSON.stringify(scrapedTweets, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const formData = new FormData();
+      formData.append('chat_id', chatId);
+      formData.append('document', blob, 'tweets.json');
 
-      for (const message of chunks) {
-        const res = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: message }),
-        });
-        const data = await res.json().catch(() => null);
-        if (!res.ok || (data && data.ok === false)) {
-          throw new Error(data?.description || 'Failed to send message');
-        }
+      const res = await fetch(`https://api.telegram.org/bot${telegramToken}/sendDocument`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || (data && data.ok === false)) {
+        throw new Error(data?.description || 'Failed to upload JSON');
       }
 
-      toast.success('Sent to Telegram');
+      toast.success('JSON sent to Telegram');
     } catch (e) {
       toast.error(e && e.message ? e.message : 'Failed to send to Telegram');
     } finally {
@@ -512,7 +501,7 @@ export default function TweetIntelligenceViewer() {
               disabled={scrapedTweets.length === 0 || isSending || !telegramToken}
               className="transition-all duration-200">
               <Send className="mr-2 h-4 w-4" />
-              {isSending ? 'Sending…' : 'Send to Telegram'}
+              {isSending ? 'Sending…' : 'Send JSON to Telegram'}
             </Button>
           </div>
         </CardFooter>
