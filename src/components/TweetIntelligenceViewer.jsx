@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@root/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from '@root/components/ui/card';
-import { Download, StopCircle } from 'lucide-react';
+import { Download, StopCircle, Send } from 'lucide-react';
 import { downloadFile } from './Scrapper';
 import toast from 'react-hot-toast';
+import useStorage from '@src/shared/hooks/useStorage';
+import telegramTokenStorage from '@src/shared/storages/telegramTokenStorage';
 
 // Custom hook to manage scraping state and related functionality
 function useScrapingManager() {
@@ -227,7 +229,6 @@ export default function TweetIntelligenceViewer() {
     isScrapingActive,
     scrapingProgress,
     isVisible,
-    forceStopped,
     setIsVisible,
     resetViewer,
     addTweetIfNew,
@@ -249,6 +250,63 @@ export default function TweetIntelligenceViewer() {
     addTweetIfNew,
     setForceStopped,
   });
+
+  // Telegram token from storage and sending state
+  const telegramToken = useStorage(telegramTokenStorage);
+  const [isSending, setIsSending] = useState(false);
+
+  const sendToTelegram = useCallback(async () => {
+    try {
+      if (!telegramToken || telegramToken.trim().length === 0) {
+        toast.error('Telegram token not set. Add it in the popup.');
+        return;
+      }
+      const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+      if (!chatId) {
+        toast.error('Missing VITE_TELEGRAM_CHAT_ID. Please configure it.');
+        return;
+      }
+      if (scrapedTweets.length === 0) {
+        toast.error('No tweets to send');
+        return;
+      }
+
+      setIsSending(true);
+
+      const MAX_LEN = 3800; // headroom below Telegram limit
+      const chunks = [];
+      let current = '';
+      for (const t of scrapedTweets) {
+        const line = `@${t.userId ?? t.userName}: ${t.text}`;
+        const next = current ? current + '\n' + line : line;
+        if (next.length > MAX_LEN) {
+          if (current) chunks.push(current);
+          current = line;
+        } else {
+          current = next;
+        }
+      }
+      if (current) chunks.push(current);
+
+      for (const message of chunks) {
+        const res = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text: message }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || (data && data.ok === false)) {
+          throw new Error(data?.description || 'Failed to send message');
+        }
+      }
+
+      toast.success('Sent to Telegram');
+    } catch (e) {
+      toast.error(e && e.message ? e.message : 'Failed to send to Telegram');
+    } finally {
+      setIsSending(false);
+    }
+  }, [telegramToken, scrapedTweets]);
 
   // Handle Twitter main page scroll prevention
   useEffect(() => {
@@ -447,6 +505,14 @@ export default function TweetIntelligenceViewer() {
               className="transition-all duration-200">
               <Download className="mr-2 h-4 w-4" />
               Export ({scrapedTweets.length})
+            </Button>
+            <Button
+              onClick={sendToTelegram}
+              variant="default"
+              disabled={scrapedTweets.length === 0 || isSending || !telegramToken}
+              className="transition-all duration-200">
+              <Send className="mr-2 h-4 w-4" />
+              {isSending ? 'Sending…' : 'Send to Telegram'}
             </Button>
           </div>
         </CardFooter>
