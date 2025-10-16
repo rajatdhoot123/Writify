@@ -54,6 +54,8 @@ const manifest = {
     'https://*:11434/api/generate',
     'https://api.anthropic.com/v1/messages',
     'https://rajatdhoot.com/*',
+    // Better Auth backend (adjust as needed)
+    'http://localhost:3000/*',
   ],
   web_accessible_resources: [
     {

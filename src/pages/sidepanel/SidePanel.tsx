@@ -16,7 +16,7 @@ const SidePanel = () => {
         <div className="flex justify-center">
           <img src={logo} alt="Launchify" className="h-12 w-12" />
         </div>
-        <h1 className="text-3xl">Welcome to Launcify</h1>
+        <h1 className="text-3xl">Welcome to Writify</h1>
         <h1 className="text-xl">Let&apos;s get started</h1>
       </div>
     </div>
