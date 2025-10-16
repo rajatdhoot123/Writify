@@ -119,6 +119,7 @@ setTimeout(() => {
         toastOptions={{
           success: {
             style: {
+               backgroundColor: 'white',
               zIndex: 9999,
               padding: '10px',
               fontWeight: '600',
