@@ -194,8 +194,14 @@ export default function TweetIntelligenceButton() {
   // Listen for a request from the viewer to include comments as well
   useEffect(() => {
     const enableComments = () => {
+      // Reset scraped data to start fresh
+      scrapedDataRef.current = [];
       includeCommentsRef.current = true;
-      toast.success('Including comments in scraping');
+      toast.success('Restarting scraper to include replies...');
+      
+      // Reset the viewer UI
+      window.dispatchEvent(new CustomEvent('reset-tweet-viewer'));
+      
       // Restart scraping from the top to include comments across the full thread
       try {
         startFullThreadScrapeFromTop();
@@ -203,8 +209,30 @@ export default function TweetIntelligenceButton() {
         // ignore
       }
     };
+
+    const disableComments = () => {
+      // Reset scraped data to start fresh
+      scrapedDataRef.current = [];
+      includeCommentsRef.current = false;
+      toast.success('Restarting scraper to exclude replies...');
+      
+      // Reset the viewer UI
+      window.dispatchEvent(new CustomEvent('reset-tweet-viewer'));
+      
+      // Restart scraping from the top to exclude comments
+      try {
+        startFullThreadScrapeFromTop();
+      } catch (_) {
+        // ignore
+      }
+    };
+
     window.addEventListener('enable-include-comments', enableComments);
-    return () => window.removeEventListener('enable-include-comments', enableComments);
+    window.addEventListener('disable-include-comments', disableComments);
+    return () => {
+      window.removeEventListener('enable-include-comments', enableComments);
+      window.removeEventListener('disable-include-comments', disableComments);
+    };
   }, []);
 
   // Monitor scraping active state and clean up when scraping is stopped
