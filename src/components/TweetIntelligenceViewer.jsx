@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@root/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from '@root/components/ui/card';
-import { Download, StopCircle, Send } from 'lucide-react';
+import { Download, StopCircle, Send, Loader2, CheckCircle2, MessageCircle } from 'lucide-react';
 import { downloadFile } from './Scrapper';
 import toast from 'react-hot-toast';
 import useStorage from '@src/shared/hooks/useStorage';
@@ -254,6 +254,20 @@ export default function TweetIntelligenceViewer() {
   // Telegram token from storage and sending state
   const telegramToken = useStorage(telegramTokenStorage);
   const [isSending, setIsSending] = useState(false);
+  const [includeComments, setIncludeComments] = useState(false);
+
+  const handleToggleComments = useCallback(() => {
+    setIncludeComments(prev => !prev);
+    if (!includeComments) {
+      // Enable include comments
+      window.dispatchEvent(new CustomEvent('enable-include-comments'));
+      toast.success('Now including replies');
+    } else {
+      // Disable include comments
+      window.dispatchEvent(new CustomEvent('disable-include-comments'));
+      toast.success('Now excluding replies');
+    }
+  }, [includeComments]);
 
   const sendToTelegram = useCallback(async () => {
     try {
@@ -362,15 +376,17 @@ export default function TweetIntelligenceViewer() {
     }
   }, [isScrapingActive]);
 
-  // Render tweet item
+  // Render tweet item with modern design
   const renderTweetItem = (tweet, index) => (
-    <div key={index} className="p-4 border-b hover:bg-muted/50 transition-colors">
-      <div className="flex justify-between items-center mb-2">
-        <div className="font-bold text-foreground">{tweet.userName}</div>
-        <div className="text-muted-foreground text-sm">{tweet.time}</div>
+    <div key={index} className="group bg-gradient-to-br from-card to-card/50 border border-border/50 rounded-lg p-4 hover:border-primary/30 hover:shadow-md transition-all duration-200">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <div className="font-semibold text-foreground text-sm">{tweet.userName}</div>
+          {tweet.userId && <div className="text-muted-foreground text-xs mt-0.5">@{tweet.userId}</div>}
+        </div>
+        <div className="text-muted-foreground text-xs whitespace-nowrap ml-2">{tweet.time}</div>
       </div>
-      <div className="mb-2 text-foreground">{tweet.text}</div>
-      {tweet.userId && <div className="text-muted-foreground text-sm">@{tweet.userId}</div>}
+      <p className="text-foreground text-sm leading-relaxed">{tweet.text}</p>
     </div>
   );
 
@@ -379,129 +395,146 @@ export default function TweetIntelligenceViewer() {
     return null;
   }
 
+  // Calculate progress percentage
+  const progressPercent = scrapingProgress.total > 0 ? (scrapingProgress.current / scrapingProgress.total) * 100 : 0;
+
   // Render UI
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       data-tweetify-element="true">
-      <Card className="w-full max-w-2xl mx-auto relative max-h-[90vh] flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-3">
-              {isScrapingActive && (
-                <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
-              )}
-              Scraped Tweets
-            </CardTitle>
-            <CardDescription className="flex items-center gap-2">
-              {isScrapingActive ? (
-                <>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  Scraping in progress... ({scrapingProgress.current} tweets collected)
-                </>
-              ) : (
-                <>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full" />
-                  {scrapedTweets.length} tweets collected
-                </>
-              )}
-            </CardDescription>
+      <Card className="w-full max-w-3xl relative max-h-[90vh] flex flex-col shadow-2xl border-0">
+        {/* Header Section */}
+        <CardHeader className="pb-4 border-b border-border/50 bg-gradient-to-r from-primary/5 to-primary/0">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <CardTitle className="text-2xl font-bold">Tweet Intelligence</CardTitle>
+                {isScrapingActive && (
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/20 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                    Live Scraping
+                  </div>
+                )}
+              </div>
+              <CardDescription className="text-base">
+                {isScrapingActive ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    Collecting tweets... {scrapingProgress.current} of {scrapingProgress.total}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className={`w-4 h-4 ${scrapedTweets.length > 0 ? 'text-green-500' : 'text-muted-foreground'}`} />
+                    {scrapedTweets.length} {scrapedTweets.length === 1 ? 'tweet' : 'tweets'} collected
+                  </div>
+                )}
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                stopScraping();
+                setIsVisible(false);
+              }}
+              className="h-8 w-8 p-0 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              stopScraping();
-              setIsVisible(false);
-            }}
-            className="h-8 w-8 p-0 rounded-full">
-            <span className="sr-only">Close</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </Button>
+
+          {/* Progress bar */}
+          {isScrapingActive && (
+            <div className="mt-3 w-full bg-muted rounded-full h-1.5 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          )}
         </CardHeader>
 
-        <CardContent className="flex-grow">
-          <div className="h-[50vh] overflow-y-auto tweetify-scroll-container">
+        {/* Content Section */}
+        <CardContent className="flex-grow overflow-hidden">
+          <div className="h-[45vh] overflow-y-auto tweetify-scroll-container pr-2 space-y-3">
             {scrapedTweets.length > 0 ? (
-              <div className="text-foreground space-y-2 pr-4">{scrapedTweets.map(renderTweetItem)}</div>
+              scrapedTweets.map(renderTweetItem)
             ) : (
-              <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-4">
-                <div className="w-12 h-12 rounded-full border-2 border-muted flex items-center justify-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-muted-foreground">
-                    <path d="M21 7c0 2.21-4.03 4-9 4S3 9.21 3 7m18 0c0-2.21-4.03-4-9-4S3 4.79 3 7m18 0v10c0 2.21-4.03 4-9 4s-9-1.79-9-4V7" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-medium mb-1">No tweets collected yet</p>
-                  <p className="text-sm">
-                    {isScrapingActive ? 'Waiting for tweets...' : 'Start scraping to collect tweets'}
-                  </p>
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center space-y-4 py-8">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                    <MessageCircle className="w-8 h-8 text-primary/60" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground mb-1">
+                      {isScrapingActive ? 'Waiting for tweets...' : 'No tweets collected yet'}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {isScrapingActive
+                        ? 'Tweets will appear here as they are scraped'
+                        : 'Start scraping to collect and view tweets'}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </CardContent>
 
-        <CardFooter className="flex justify-between items-center border-t p-4">
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={stopScraping}
-              variant={isScrapingActive ? 'destructive' : 'outline'}
-              disabled={!isScrapingActive}
-              className="transition-all duration-200">
-              <StopCircle className={`mr-2 h-4 w-4 ${isScrapingActive ? 'animate-pulse' : ''}`} />
-              {isScrapingActive ? 'Stop Scraping' : 'Scraping Inactive'}
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('enable-include-comments'));
-              }}
-              variant="outline"
-              className="transition-all duration-200">
-              Include comments
-            </Button>
+        {/* Footer Section - Improved Button Layout */}
+        <CardFooter className="flex flex-col gap-3 border-t border-border/50 bg-muted/30 pt-4 pb-4 px-6">
+          {/* Primary Actions Row */}
+          <div className="flex gap-2 w-full">
             <Button
               onClick={exportData}
-              variant="default"
               disabled={scrapedTweets.length === 0}
-              className="transition-all duration-200">
-              <Download className="mr-2 h-4 w-4" />
+              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all duration-200 h-10 rounded-lg">
+              <Download className="w-4 h-4 mr-2" />
               Export ({scrapedTweets.length})
             </Button>
             <Button
               onClick={sendToTelegram}
-              variant="default"
               disabled={scrapedTweets.length === 0 || isSending || !telegramToken}
-              className="transition-all duration-200">
-              <Send className="mr-2 h-4 w-4" />
-              {isSending ? 'Sending…' : 'Send JSON to Telegram'}
+              variant="secondary"
+              className="flex-1 font-medium transition-all duration-200 h-10 rounded-lg">
+              <Send className={`w-4 h-4 mr-2 ${isSending ? 'animate-spin' : ''}`} />
+              {isSending ? 'Sending…' : 'Telegram'}
+            </Button>
+          </div>
+
+          {/* Secondary Actions Row */}
+          <div className="flex gap-2 w-full">
+            <Button
+              onClick={handleToggleComments}
+              variant="outline"
+              className="flex-1 font-medium transition-all duration-200 h-9 rounded-lg text-sm">
+              <MessageCircle className={`w-3.5 h-3.5 mr-1.5 ${includeComments ? 'text-green-500' : 'text-muted-foreground'}`} />
+              {includeComments ? 'Exclude Replies' : 'Include Replies'}
+            </Button>
+            <Button
+              onClick={stopScraping}
+              disabled={!isScrapingActive}
+              variant={isScrapingActive ? 'destructive' : 'outline'}
+              className={`flex-1 font-medium transition-all duration-200 h-9 rounded-lg text-sm ${
+                isScrapingActive ? 'hover:bg-destructive/90' : ''
+              }`}>
+              <StopCircle className={`w-3.5 h-3.5 mr-1.5 ${isScrapingActive ? 'animate-pulse' : ''}`} />
+              {isScrapingActive ? 'Stop' : 'Stopped'}
             </Button>
           </div>
         </CardFooter>
