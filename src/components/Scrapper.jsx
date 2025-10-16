@@ -30,6 +30,85 @@ export function downloadFile(filename, data) {
   document.body.removeChild(a);
 }
 
+// Helper function to extract all external links from a tweet (user-posted content links only)
+function extractLinksFromTweet(el) {
+  const links = [];
+  try {
+    // Get all links from the tweet (anchor tags)
+    const allLinks = el.querySelectorAll('a[href]');
+    allLinks.forEach(link => {
+      const href = link.getAttribute('href');
+      if (href && href.startsWith('http')) {
+        // Skip twitter.com/x.com profile and navigation links - only get external content links
+        // Include t.co short links as they wrap external content
+        if (!href.includes('twitter.com') && !href.includes('x.com')) {
+          // Avoid duplicates
+          if (!links.includes(href)) {
+            links.push(href);
+          }
+        }
+      }
+    });
+    
+    // Extract video sources
+    const videos = el.querySelectorAll('video[src]');
+    videos.forEach(video => {
+      const src = video.getAttribute('src');
+      if (src && src.startsWith('http') && !links.includes(src)) {
+        links.push(src);
+      }
+    });
+    
+    // Extract audio sources
+    const audios = el.querySelectorAll('audio[src]');
+    audios.forEach(audio => {
+      const src = audio.getAttribute('src');
+      if (src && src.startsWith('http') && !links.includes(src)) {
+        links.push(src);
+      }
+    });
+    
+    // Extract image sources from figures/media containers
+    const images = el.querySelectorAll('img[src]');
+    images.forEach(img => {
+      const src = img.getAttribute('src');
+      if (src && src.startsWith('http') && !src.includes('pbs.twimg.com/profile_images') && !links.includes(src)) {
+        // Skip profile images, keep media images
+        if (!src.includes('profile_images') && !src.includes('emoji')) {
+          links.push(src);
+        }
+      }
+    });
+  } catch (e) {
+    // ignore
+  }
+  return links;
+}
+
+// Helper function to extract card text from linked card content (when tweet has no text)
+function extractCardText(el) {
+  try {
+    const cardDetail = el.querySelector('[data-testid="card.layoutSmall.detail"]');
+    if (cardDetail) {
+      const divs = cardDetail.querySelectorAll('div[dir="auto"]');
+      if (divs.length > 0) {
+        const textParts = [];
+        // Get all text content from card divs (domain, title, description)
+        divs.forEach(div => {
+          const text = div.textContent?.trim();
+          if (text) {
+            textParts.push(text);
+          }
+        });
+        return textParts.join(' | ');
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return '';
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case 'TOGGLE_CONFIG_MENU':
@@ -94,13 +173,25 @@ export default function App() {
         const scrollTopAfter = window.scrollY;
 
         [...document.getElementsByTagName('article')].forEach(el => {
-          const textContent = findClosest(el, elId)?.textContent ?? '';
+          let textContent = findClosest(el, elId)?.textContent ?? '';
           const [userName, userId] = findClosest(el, '[data-testid=User-Name')?.innerText?.split('@') ?? ['', ''];
           const time = findClosest(el, 'time')?.innerText ?? '';
+          const links = extractLinksFromTweet(el);
+          
+          // If no text content but has external links, try to extract card text
+          if (!textContent && links.length > 0) {
+            textContent = extractCardText(el);
+          }
+          
+          // If still no text content but has external links, use the first link as content
+          if (!textContent && links.length > 0) {
+            textContent = links[0];
+          }
+          
           const hash = hashCode(textContent);
 
-          if (!loggedHashes.current.has(hash)) {
-            dataRef.current.push({ text: textContent, time, userName, userId });
+          if (textContent && !loggedHashes.current.has(hash)) {
+            dataRef.current.push({ text: textContent, time, userName, userId, links });
             loggedHashes.current.add(hash);
           }
         });
