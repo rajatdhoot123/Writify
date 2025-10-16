@@ -100,7 +100,7 @@ export default function TweetIntelligenceButton() {
   };
 
   // Helper function to extract all external links from a tweet (user-posted content links only)
-  const extractLinksFromTweet = (tweetArticle) => {
+  const extractLinksFromTweet = tweetArticle => {
     const links = [];
     try {
       // Get all links from the tweet (anchor tags)
@@ -117,7 +117,7 @@ export default function TweetIntelligenceButton() {
           }
         }
       });
-      
+
       // Extract video sources
       const videos = tweetArticle.querySelectorAll('video[src]');
       videos.forEach(video => {
@@ -126,7 +126,7 @@ export default function TweetIntelligenceButton() {
           links.push(src);
         }
       });
-      
+
       // Extract audio sources
       const audios = tweetArticle.querySelectorAll('audio[src]');
       audios.forEach(audio => {
@@ -135,7 +135,7 @@ export default function TweetIntelligenceButton() {
           links.push(src);
         }
       });
-      
+
       // Extract image sources from figures/media containers
       const images = tweetArticle.querySelectorAll('img[src]');
       images.forEach(img => {
@@ -154,7 +154,7 @@ export default function TweetIntelligenceButton() {
   };
 
   // Helper function to extract card text from linked card content (when tweet has no text)
-  const extractCardText = (tweetArticle) => {
+  const extractCardText = tweetArticle => {
     try {
       const cardDetail = tweetArticle.querySelector('[data-testid="card.layoutSmall.detail"]');
       if (cardDetail) {
@@ -217,17 +217,17 @@ export default function TweetIntelligenceButton() {
 
             let tweetText = tweetTextElement?.textContent || '';
             const links = extractLinksFromTweet(tweetArticle);
-            
+
             // If no text content but has external links, try to extract card text
             if (!tweetText && links.length > 0) {
               tweetText = extractCardText(tweetArticle);
             }
-            
+
             // If still no text content but has external links, use the first link as content
             if (!tweetText && links.length > 0) {
               tweetText = links[0];
             }
-            
+
             const userNameElement = tweetArticle.querySelector('[data-testid="User-Name"]');
             const displayName = userNameElement?.querySelector('span')?.innerText || userNameElement?.innerText || '';
             const userId = extractAuthorHandle(tweetArticle);
@@ -349,17 +349,17 @@ export default function TweetIntelligenceButton() {
 
       let tweetText = tweetTextElement?.textContent || '';
       const links = extractLinksFromTweet(tweetArticle);
-      
+
       // If no text content but has external links, try to extract card text
       if (!tweetText && links.length > 0) {
         tweetText = extractCardText(tweetArticle);
       }
-      
+
       // If still no text content but has external links, use the first link as content
       if (!tweetText && links.length > 0) {
         tweetText = links[0];
       }
-      
+
       const displayName = userNameElement?.querySelector('span')?.innerText || userNameElement?.innerText || '';
       const userId = extractAuthorHandle(tweetArticle);
       const userName = displayName?.split('@')[0]?.trim();
@@ -491,17 +491,17 @@ export default function TweetIntelligenceButton() {
 
       let tweetText = tweetTextElement?.textContent || '';
       const links = extractLinksFromTweet(tweetArticle);
-      
+
       // If no text content but has external links, try to extract card text
       if (!tweetText && links.length > 0) {
         tweetText = extractCardText(tweetArticle);
       }
-      
+
       // If still no text content but has external links, use the first link as content
       if (!tweetText && links.length > 0) {
         tweetText = links[0];
       }
-      
+
       const displayName = userNameElement?.querySelector('span')?.innerText || userNameElement?.innerText || '';
       const userId = extractAuthorHandle(tweetArticle);
       const userName = displayName?.split('@')[0]?.trim();

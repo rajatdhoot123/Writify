@@ -49,7 +49,7 @@ function extractLinksFromTweet(el) {
         }
       }
     });
-    
+
     // Extract video sources
     const videos = el.querySelectorAll('video[src]');
     videos.forEach(video => {
@@ -58,7 +58,7 @@ function extractLinksFromTweet(el) {
         links.push(src);
       }
     });
-    
+
     // Extract audio sources
     const audios = el.querySelectorAll('audio[src]');
     audios.forEach(audio => {
@@ -67,7 +67,7 @@ function extractLinksFromTweet(el) {
         links.push(src);
       }
     });
-    
+
     // Extract image sources from figures/media containers
     const images = el.querySelectorAll('img[src]');
     images.forEach(img => {
@@ -177,17 +177,17 @@ export default function App() {
           const [userName, userId] = findClosest(el, '[data-testid=User-Name')?.innerText?.split('@') ?? ['', ''];
           const time = findClosest(el, 'time')?.innerText ?? '';
           const links = extractLinksFromTweet(el);
-          
+
           // If no text content but has external links, try to extract card text
           if (!textContent && links.length > 0) {
             textContent = extractCardText(el);
           }
-          
+
           // If still no text content but has external links, use the first link as content
           if (!textContent && links.length > 0) {
             textContent = links[0];
           }
-          
+
           const hash = hashCode(textContent);
 
           if (textContent && !loggedHashes.current.has(hash)) {
