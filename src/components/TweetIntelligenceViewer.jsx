@@ -423,6 +423,14 @@ export default function TweetIntelligenceViewer() {
           </div>
           <div className="flex items-center gap-2">
             <Button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('enable-include-comments'));
+              }}
+              variant="outline"
+              className="transition-all duration-200">
+              Include comments
+            </Button>
+            <Button
               onClick={exportData}
               variant="default"
               disabled={scrapedTweets.length === 0}

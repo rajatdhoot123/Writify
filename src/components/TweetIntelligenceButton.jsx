@@ -21,9 +21,82 @@ export default function TweetIntelligenceButton() {
   const [isLoading, setIsLoading] = useState({});
   const [isScrapingActive, setIsScrapingActive] = useState(false);
   const [, setScrapingProgress] = useState({ total: 0, current: 0 });
+  // Control whether to include comments (replies from other users) in scraping
+  const includeCommentsRef = useRef(false);
+  // Track the primary author's handle/id to restrict default scraping to author thread only
+  const primaryAuthorIdRef = useRef(null);
 
   // Make scrapedDataRef available globally for the overlay
   window.scrapedDataRef = scrapedDataRef;
+
+  // Helper to robustly extract the author's handle from a tweet article
+  const extractAuthorHandle = root => {
+    try {
+      // Prefer the profile link inside the User-Name container
+      const userNameContainer = root.querySelector('[data-testid="User-Name"]');
+      const profileLink = userNameContainer && userNameContainer.querySelector('a[href^="/"]');
+      const href = profileLink && profileLink.getAttribute('href');
+      if (href) {
+        const handle = href.split('?')[0].split('/').filter(Boolean)[0];
+        if (handle) return handle.toLowerCase();
+      }
+
+      // Fallback: parse innerText looking for @handle
+      const text = userNameContainer && userNameContainer.innerText;
+      if (text && text.includes('@')) {
+        const afterAt = text.split('@')[1] || '';
+        const handle = afterAt.split(/\s|\n|\.|·|,/)[0];
+        if (handle) return handle.toLowerCase();
+      }
+
+      // Last resort: avatar container link
+      const avatarLink = root.querySelector('[data-testid^="UserAvatar-Container"] a[href^="/"]');
+      const avatarHref = avatarLink && avatarLink.getAttribute('href');
+      if (avatarHref) {
+        const handle = avatarHref.split('?')[0].split('/').filter(Boolean)[0];
+        if (handle) return handle.toLowerCase();
+      }
+    } catch (_) {
+      // ignore
+    }
+    return '';
+  };
+
+  // Detect if a tweet is a reply using layout-agnostic cues
+  const isReplyTweet = root => {
+    try {
+      // Heuristic: tweet content begins with an @mention (typical quick reply)
+      const txt = (root.querySelector('[data-testid="tweetText"]')?.textContent || '').trim();
+      if (txt.startsWith('@')) return true;
+    } catch (_) {
+      return false;
+    }
+    return false;
+  };
+
+  // Determine by DOM context: if the nearest previous tweet is from a different author,
+  // then an author tweet immediately after is likely a reply in a conversation.
+  const isAuthorReplyByContext = root => {
+    try {
+      const articles = Array.from(document.querySelectorAll('article'));
+      const idx = articles.indexOf(root);
+      if (idx <= 0) return false;
+      const primary = primaryAuthorIdRef.current;
+      if (!primary) return false;
+      // Walk back to find the nearest previous tweet with a detectable author
+      for (let i = idx - 1; i >= 0; i--) {
+        const prev = articles[i];
+        const prevHandle = extractAuthorHandle(prev);
+        if (!prevHandle) continue; // skip if unknown
+        const sameAsPrimary = prevHandle.toLowerCase() === primary.toLowerCase();
+        // If previous is non-author, we treat this as reply context
+        return !sameAsPrimary;
+      }
+    } catch (_) {
+      return false;
+    }
+    return false;
+  };
 
   // Listen for tweet-scraped events to update the UI
   useEffect(() => {
@@ -61,17 +134,17 @@ export default function TweetIntelligenceButton() {
           if (tweetArticle) {
             // Extract initial tweet data
             const tweetTextElement = tweetArticle.querySelector('[data-testid="tweetText"]');
-            const userNameElement = tweetArticle.querySelector('[data-testid="User-Name"]');
             const timeElement = tweetArticle.querySelector('time');
 
             const tweetText = tweetTextElement?.textContent || '';
-            const userNameInfo = userNameElement?.innerText?.split('@') || ['', ''];
-            const userName = userNameInfo[0]?.trim();
-            const userId = userNameInfo[1]?.trim();
+            const userNameElement = tweetArticle.querySelector('[data-testid="User-Name"]');
+            const displayName = userNameElement?.querySelector('span')?.innerText || userNameElement?.innerText || '';
+            const userId = extractAuthorHandle(tweetArticle);
+            const userName = displayName?.split('@')[0]?.trim();
             const time = timeElement?.innerText || '';
 
             const initialTweet = { text: tweetText, time, userName, userId };
-            
+
             // Start fresh scraping with the initial tweet
             initializeScraping(initialTweet);
             toast.success('Started scraping this tweet thread');
@@ -93,13 +166,13 @@ export default function TweetIntelligenceButton() {
     const originalPushState = history.pushState;
     const originalReplaceState = history.replaceState;
 
-    history.pushState = function() {
+    history.pushState = function () {
       const result = originalPushState.apply(this, arguments);
       handleUrlChange();
       return result;
     };
 
-    history.replaceState = function() {
+    history.replaceState = function () {
       const result = originalReplaceState.apply(this, arguments);
       handleUrlChange();
       return result;
@@ -115,6 +188,22 @@ export default function TweetIntelligenceButton() {
       history.pushState = originalPushState;
       history.replaceState = originalReplaceState;
     };
+  }, []);
+
+  // Listen for a request from the viewer to include comments as well
+  useEffect(() => {
+    const enableComments = () => {
+      includeCommentsRef.current = true;
+      toast.success('Including comments in scraping');
+      // Restart scraping from the top to include comments across the full thread
+      try {
+        startFullThreadScrapeFromTop();
+      } catch (_) {
+        // ignore
+      }
+    };
+    window.addEventListener('enable-include-comments', enableComments);
+    return () => window.removeEventListener('enable-include-comments', enableComments);
   }, []);
 
   // Monitor scraping active state and clean up when scraping is stopped
@@ -139,10 +228,22 @@ export default function TweetIntelligenceButton() {
       const timeElement = tweetArticle.querySelector('time');
 
       const tweetText = tweetTextElement?.textContent || '';
-      const userNameInfo = userNameElement?.innerText?.split('@') || ['', ''];
-      const userName = userNameInfo[0]?.trim();
-      const userId = userNameInfo[1]?.trim();
+      const displayName = userNameElement?.querySelector('span')?.innerText || userNameElement?.innerText || '';
+      const userId = extractAuthorHandle(tweetArticle);
+      const userName = displayName?.split('@')[0]?.trim();
       const time = timeElement?.innerText || '';
+
+      // By default, only collect tweets from the primary author unless comments are enabled
+      if (!includeCommentsRef.current && primaryAuthorIdRef.current) {
+        const isAuthor = !!userId && userId.toLowerCase() === primaryAuthorIdRef.current.toLowerCase();
+        if (!isAuthor) {
+          return null;
+        }
+        // Exclude author's replies (heuristics) unless comments are enabled
+        if (isReplyTweet(tweetArticle) || isAuthorReplyByContext(tweetArticle)) {
+          return null;
+        }
+      }
 
       // Create a hash of the tweet text to avoid duplicates
       const hash = hashCode(tweetText);
@@ -159,7 +260,7 @@ export default function TweetIntelligenceButton() {
               isActive: true,
               progress: { total: 0, current: scrapedDataRef.current.length },
               latestTweet: tweetData,
-              data: scrapedDataRef.current
+              data: scrapedDataRef.current,
             },
           }),
         );
@@ -169,7 +270,7 @@ export default function TweetIntelligenceButton() {
           new CustomEvent('tweet-scraped', {
             detail: {
               data: scrapedDataRef.current,
-              latestTweet: tweetData
+              latestTweet: tweetData,
             },
           }),
         );
@@ -190,18 +291,23 @@ export default function TweetIntelligenceButton() {
     // Reset everything
     scrapedDataRef.current = [];
     setScrapingProgress({ total: 0, current: 0 });
-    
+
     // Set scraping as active
     setIsScrapingActive(true);
-    
+    // Reset options for a fresh run
+    includeCommentsRef.current = false;
+    primaryAuthorIdRef.current = initialTweet?.userId ? String(initialTweet.userId).toLowerCase() : null;
+
     // Add initial tweet if provided
     if (initialTweet) {
-      scrapedDataRef.current = [initialTweet];
+      scrapedDataRef.current = [
+        { ...initialTweet, userId: initialTweet.userId?.toLowerCase?.() || initialTweet.userId },
+      ];
     }
-    
+
     // Show the viewer immediately
     window.dispatchEvent(new CustomEvent('show-tweet-viewer'));
-    
+
     // Notify about fresh scraping start
     window.dispatchEvent(
       new CustomEvent('scraping-state-change', {
@@ -210,7 +316,7 @@ export default function TweetIntelligenceButton() {
           progress: { total: 0, current: initialTweet ? 1 : 0 },
           keepVisible: true,
           data: scrapedDataRef.current,
-          latestTweet: initialTweet
+          latestTweet: initialTweet,
         },
       }),
     );
@@ -221,7 +327,7 @@ export default function TweetIntelligenceButton() {
         new CustomEvent('tweet-scraped', {
           detail: {
             data: scrapedDataRef.current,
-            latestTweet: initialTweet
+            latestTweet: initialTweet,
           },
         }),
       );
@@ -249,9 +355,9 @@ export default function TweetIntelligenceButton() {
       const timeElement = tweetArticle.querySelector('time');
 
       const tweetText = tweetTextElement?.textContent || '';
-      const userNameInfo = userNameElement?.innerText?.split('@') || ['', ''];
-      const userName = userNameInfo[0]?.trim();
-      const userId = userNameInfo[1]?.trim();
+      const displayName = userNameElement?.querySelector('span')?.innerText || userNameElement?.innerText || '';
+      const userId = extractAuthorHandle(tweetArticle);
+      const userName = displayName?.split('@')[0]?.trim();
       const time = timeElement?.innerText || '';
 
       const initialTweet = { text: tweetText, time, userName, userId };
@@ -352,26 +458,36 @@ export default function TweetIntelligenceButton() {
           return;
         }
 
-        // Find all action buttons in this tweet
-        const actionToolbar = article.querySelector('[role="group"]');
+        // Find the action toolbar in this tweet (robust lookup)
+        let actionToolbar = article.querySelector('[role="group"]');
+        if (!actionToolbar) {
+          // Try locating via a known action (reply/like/retweet) and walk up
+          const anyAction =
+            article.querySelector('[data-testid="reply"]') ||
+            article.querySelector('[data-testid="retweet"]') ||
+            article.querySelector('[data-testid="like"]');
+          if (anyAction) {
+            actionToolbar = anyAction.closest('[role="group"]') || anyAction.parentElement;
+          }
+        }
         if (!actionToolbar) {
           return;
         }
 
-        // Find the bookmark button specifically
-        const bookmarkButton = actionToolbar.querySelector('[data-testid="bookmark"]');
-        if (!bookmarkButton) {
-          return;
-        }
+        // Prefer inserting before a known stable control; fall back gracefully
+        const bookmarkButton =
+          actionToolbar.querySelector('[data-testid="bookmark"]') ||
+          actionToolbar.querySelector('[data-testid="removeBookmark"]');
+        const shareButton =
+          actionToolbar.querySelector('[data-testid="share"]') ||
+          actionToolbar.querySelector('[aria-label="Share post"]');
 
         // Mark this tweet as processed
         processedTweets.current.add(tweetId);
 
-        // Get the parent container of the bookmark button
-        const bookmarkContainer = bookmarkButton.closest('div');
-        if (!bookmarkContainer) {
-          return;
-        }
+        // Resolve insertion reference node
+        const referenceContainer =
+          (bookmarkButton && bookmarkButton.closest('div')) || (shareButton && shareButton.closest('div')) || null;
 
         // Create a container for our intelligence button with minimal impact
         const intelligenceButtonContainer = document.createElement('div');
@@ -390,8 +506,12 @@ export default function TweetIntelligenceButton() {
         intelligenceButtonContainer.style.width = '0';
         intelligenceButtonContainer.style.overflow = 'hidden';
 
-        // Insert our button container before the bookmark container
-        actionToolbar.insertBefore(intelligenceButtonContainer, bookmarkContainer);
+        // Insert our button container before the reference (bookmark/share). If not found, append to toolbar
+        if (referenceContainer) {
+          actionToolbar.insertBefore(intelligenceButtonContainer, referenceContainer);
+        } else {
+          actionToolbar.appendChild(intelligenceButtonContainer);
+        }
 
         // Add the button to our collection
         newButtons.push({
@@ -442,7 +562,7 @@ export default function TweetIntelligenceButton() {
     // Filter to only include action toolbars that contain tweet action buttons
     const tweetActionToolbars = actionToolbars.filter(toolbar =>
       toolbar.querySelector(
-        '[data-testid="like"], [data-testid="reply"], [data-testid="retweet"], [data-testid="bookmark"]',
+        '[data-testid="like"], [data-testid="reply"], [data-testid="retweet"], [data-testid="bookmark"], [data-testid="removeBookmark"], [data-testid="share"], [aria-label="Share post"]',
       ),
     );
 
@@ -455,9 +575,11 @@ export default function TweetIntelligenceButton() {
           return;
         }
 
-        // Find the bookmark button
-        const bookmarkButton = toolbar.querySelector('[data-testid="bookmark"]');
-        if (!bookmarkButton) return;
+        // Find a stable reference to insert before (bookmark/share), otherwise append
+        const bookmarkButton =
+          toolbar.querySelector('[data-testid="bookmark"]') || toolbar.querySelector('[data-testid="removeBookmark"]');
+        const shareButton =
+          toolbar.querySelector('[data-testid="share"]') || toolbar.querySelector('[aria-label="Share post"]');
 
         // Generate a unique ID
         const toolbarId = `toolbar-${hashCode(toolbar.innerHTML.substring(0, 100))}-${index}`;
@@ -468,9 +590,9 @@ export default function TweetIntelligenceButton() {
         // Mark as processed
         processedTweets.current.add(toolbarId);
 
-        // Find the bookmark container
-        const bookmarkContainer = bookmarkButton.closest('div');
-        if (!bookmarkContainer) return;
+        // Resolve insertion reference node
+        const referenceContainer =
+          (bookmarkButton && bookmarkButton.closest('div')) || (shareButton && shareButton.closest('div')) || null;
 
         // Create our button container with minimal impact
         const buttonContainer = document.createElement('div');
@@ -489,8 +611,12 @@ export default function TweetIntelligenceButton() {
         buttonContainer.style.width = '0';
         buttonContainer.style.overflow = 'hidden';
 
-        // Insert before bookmark
-        toolbar.insertBefore(buttonContainer, bookmarkContainer);
+        // Insert before reference if available; otherwise append to the toolbar
+        if (referenceContainer) {
+          toolbar.insertBefore(buttonContainer, referenceContainer);
+        } else {
+          toolbar.appendChild(buttonContainer);
+        }
 
         // Find the article that contains this toolbar
         const article = toolbar.closest('article');
@@ -663,6 +789,19 @@ export default function TweetIntelligenceButton() {
       window.tweetObservers = [];
     }
 
+    // Helper: find the appropriate scroll container for the tweet thread/status page
+    const getScrollContainer = () => {
+      // Prefer the primary column or conversation timeline; fall back to documentElement/body
+      const candidates = [
+        document.querySelector('[data-testid="primaryColumn"]'),
+        document.querySelector('main[role="main"]'),
+        document.querySelector('[aria-label="Timeline: Conversation"]'),
+        document.querySelector('[aria-label="Home timeline"]'),
+      ];
+      const container = candidates.find(el => el && el.scrollHeight > el.clientHeight);
+      return container || document.scrollingElement || document.documentElement || document.body;
+    };
+
     // Initial scrape of visible tweets
     const scrapeVisibleTweets = async () => {
       const articles = document.querySelectorAll('article');
@@ -673,45 +812,95 @@ export default function TweetIntelligenceButton() {
 
     // Start the scraping interval
     let intervalId;
+    // Track thread completion heuristics when excluding comments
+    let authorTweetsCollected = 0;
+    let consecutiveNonAuthor = 0;
+
+    const classifyAuthorForArticle = article => {
+      const handle = extractAuthorHandle(article);
+      const primary = primaryAuthorIdRef.current;
+      if (!primary) return 'unknown';
+      return handle && primary && handle.toLowerCase() === primary.toLowerCase() ? 'author' : 'nonAuthor';
+    };
+
     const startScrapingInterval = () => {
+      const scrollContainer = getScrollContainer();
       intervalId = setInterval(async () => {
-        const scrollTopBefore = window.scrollY;
-        
-        // Scroll the window
-        window.scrollBy(0, 500);
-        
+        const isWindow =
+          scrollContainer === window ||
+          scrollContainer === document.scrollingElement ||
+          scrollContainer === document.documentElement ||
+          scrollContainer === document.body;
+        const getTop = () => (isWindow ? window.scrollY : scrollContainer.scrollTop);
+        const setScrollBy = amount => {
+          if (isWindow) {
+            window.scrollBy(0, amount);
+          } else {
+            scrollContainer.scrollTop = scrollContainer.scrollTop + amount;
+          }
+        };
+
+        const scrollTopBefore = getTop();
+
+        // Scroll the container
+        setScrollBy(600);
+
         // Get the new scroll position
-        const scrollTopAfter = window.scrollY;
-        
+        const scrollTopAfter = getTop();
+
         // Scrape newly visible tweets
         await scrapeVisibleTweets();
-        
+
+        // Update heuristics only when we're not including comments
+        if (!includeCommentsRef.current && primaryAuthorIdRef.current) {
+          const visibleArticles = Array.from(document.querySelectorAll('article'));
+          for (const art of visibleArticles) {
+            const cls = classifyAuthorForArticle(art);
+            if (cls === 'author') {
+              authorTweetsCollected += 1;
+              consecutiveNonAuthor = 0;
+            } else if (cls === 'nonAuthor') {
+              consecutiveNonAuthor += 1;
+            }
+          }
+        }
+
         // Update progress
         setScrapingProgress(prev => {
           const newProgress = {
             total: Math.max(prev.total, scrapedDataRef.current.length + 5),
-            current: scrapedDataRef.current.length
+            current: scrapedDataRef.current.length,
           };
-          
+
           // Notify about progress
           window.dispatchEvent(
             new CustomEvent('scraping-state-change', {
               detail: {
                 isActive: true,
                 progress: newProgress,
-                data: scrapedDataRef.current
+                data: scrapedDataRef.current,
               },
             }),
           );
-          
+
           return newProgress;
         });
-        
-        // If we can't scroll further, we're done
-        if (scrollTopBefore === scrollTopAfter) {
+
+        // If we can't scroll further (or reached bottom), we're done
+        const reachedBottom = (() => {
+          if (isWindow) {
+            const doc = document.scrollingElement || document.documentElement;
+            return Math.ceil(window.scrollY + window.innerHeight) >= doc.scrollHeight;
+          }
+          return Math.ceil(scrollContainer.scrollTop + scrollContainer.clientHeight) >= scrollContainer.scrollHeight;
+        })();
+
+        // Stop if reached bottom or thread likely completed (entered replies section)
+        const threadComplete = !includeCommentsRef.current && authorTweetsCollected >= 1 && consecutiveNonAuthor >= 3;
+        if (scrollTopBefore === scrollTopAfter || reachedBottom || threadComplete) {
           clearInterval(intervalId);
           setIsScrapingActive(false);
-          
+
           // Final progress update
           window.dispatchEvent(
             new CustomEvent('scraping-state-change', {
@@ -720,17 +909,17 @@ export default function TweetIntelligenceButton() {
                 progress: {
                   total: scrapedDataRef.current.length,
                   current: scrapedDataRef.current.length,
-                  isComplete: true
+                  isComplete: true,
                 },
                 keepVisible: true,
-                data: scrapedDataRef.current
+                data: scrapedDataRef.current,
               },
             }),
           );
-          
+
           // Keep viewer visible
           window.dispatchEvent(new CustomEvent('keep-viewer-visible'));
-          
+
           toast.success('Finished scraping thread');
           return;
         }
@@ -749,6 +938,113 @@ export default function TweetIntelligenceButton() {
         clearInterval(intervalId);
       }
     };
+  };
+
+  // Scrape the full thread from the top including comments
+  const startFullThreadScrapeFromTop = () => {
+    // Reset state but keep includeCommentsRef = true
+    scrapedDataRef.current = [];
+    setScrapingProgress({ total: 0, current: 0 });
+    setIsScrapingActive(true);
+
+    // Show the viewer immediately
+    window.dispatchEvent(new CustomEvent('show-tweet-viewer'));
+    window.dispatchEvent(
+      new CustomEvent('scraping-state-change', {
+        detail: {
+          isActive: true,
+          progress: { total: 0, current: 0 },
+          keepVisible: true,
+          data: scrapedDataRef.current,
+        },
+      }),
+    );
+
+    const scrollContainer = (() => {
+      const candidates = [
+        document.querySelector('[data-testid="primaryColumn"]'),
+        document.querySelector('main[role="main"]'),
+        document.querySelector('[aria-label="Timeline: Conversation"]'),
+        document.querySelector('[aria-label="Home timeline"]'),
+      ];
+      const c = candidates.find(el => el && el.scrollHeight > el.clientHeight);
+      return c || document.scrollingElement || document.documentElement || document.body;
+    })();
+
+    const isWindow =
+      scrollContainer === window ||
+      scrollContainer === document.scrollingElement ||
+      scrollContainer === document.documentElement ||
+      scrollContainer === document.body;
+    if (isWindow) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    } else {
+      scrollContainer.scrollTop = 0;
+    }
+
+    const scrapeVisibleTweets = async () => {
+      const articles = document.querySelectorAll('article');
+      for (const article of articles) {
+        await scrapeTweet(article);
+      }
+    };
+
+    let intervalId;
+    const getTop = () => (isWindow ? window.scrollY : scrollContainer.scrollTop);
+    const setScrollBy = amount => {
+      if (isWindow) {
+        window.scrollBy(0, amount);
+      } else {
+        scrollContainer.scrollTop = scrollContainer.scrollTop + amount;
+      }
+    };
+
+    intervalId = setInterval(async () => {
+      const before = getTop();
+      setScrollBy(600);
+      await scrapeVisibleTweets();
+      setScrapingProgress(prev => {
+        const newProgress = {
+          total: Math.max(prev.total, scrapedDataRef.current.length + 5),
+          current: scrapedDataRef.current.length,
+        };
+        window.dispatchEvent(
+          new CustomEvent('scraping-state-change', {
+            detail: { isActive: true, progress: newProgress, data: scrapedDataRef.current },
+          }),
+        );
+        return newProgress;
+      });
+
+      const reachedBottom = (() => {
+        if (isWindow) {
+          const doc = document.scrollingElement || document.documentElement;
+          return Math.ceil(window.scrollY + window.innerHeight) >= doc.scrollHeight;
+        }
+        return Math.ceil(scrollContainer.scrollTop + scrollContainer.clientHeight) >= scrollContainer.scrollHeight;
+      })();
+
+      if (before === getTop() || reachedBottom) {
+        clearInterval(intervalId);
+        setIsScrapingActive(false);
+        window.dispatchEvent(
+          new CustomEvent('scraping-state-change', {
+            detail: {
+              isActive: false,
+              progress: {
+                total: scrapedDataRef.current.length,
+                current: scrapedDataRef.current.length,
+                isComplete: true,
+              },
+              keepVisible: true,
+              data: scrapedDataRef.current,
+            },
+          }),
+        );
+        window.dispatchEvent(new CustomEvent('keep-viewer-visible'));
+        toast.success('Finished scraping full thread with comments');
+      }
+    }, 1800);
   };
 
   return (
