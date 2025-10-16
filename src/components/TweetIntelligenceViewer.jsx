@@ -104,8 +104,6 @@ function useScrapingManager() {
 
 // Custom hook for event listeners
 function useScrapingEvents({
-  isScrapingActive,
-  forceStopped,
   setIsScrapingActive,
   setScrapingProgress,
   setScrapedTweets,
@@ -132,6 +130,7 @@ function useScrapingEvents({
 
     // Handle scraping state changes
     const handleScrapingStateChange = event => {
+      console.log('handleScrapingStateChange', event);
       if (!event.detail) return;
 
       const isActive = event.detail.isActive;
@@ -211,8 +210,6 @@ function useScrapingEvents({
       window.removeEventListener('keep-viewer-visible', handleKeepVisible);
     };
   }, [
-    isScrapingActive,
-    forceStopped,
     setIsScrapingActive,
     setScrapingProgress,
     setScrapedTweets,
@@ -244,8 +241,6 @@ export default function TweetIntelligenceViewer() {
 
   // Register all event listeners
   useScrapingEvents({
-    isScrapingActive,
-    forceStopped,
     setIsScrapingActive,
     setScrapingProgress,
     setScrapedTweets,

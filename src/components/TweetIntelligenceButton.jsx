@@ -20,6 +20,7 @@ export default function TweetIntelligenceButton() {
   const scrapedDataRef = useRef([]);
   const [isLoading, setIsLoading] = useState({});
   const [isScrapingActive, setIsScrapingActive] = useState(false);
+  const isScrapingActiveRef = useRef(false);
   const [, setScrapingProgress] = useState({ total: 0, current: 0 });
   // Control whether to include comments (replies from other users) in scraping
   const includeCommentsRef = useRef(false);
@@ -208,6 +209,7 @@ export default function TweetIntelligenceButton() {
 
   // Monitor scraping active state and clean up when scraping is stopped
   useEffect(() => {
+    isScrapingActiveRef.current = isScrapingActive;
     // If scraping is stopped, disconnect any tweet observers
     if (!isScrapingActive && window.tweetObservers && window.tweetObservers.length > 0) {
       window.tweetObservers.forEach(obs => {
@@ -253,17 +255,19 @@ export default function TweetIntelligenceButton() {
         const tweetData = { text: tweetText, time, userName, userId };
         scrapedDataRef.current = [...scrapedDataRef.current, tweetData];
 
-        // Notify about the latest tweet
-        window.dispatchEvent(
-          new CustomEvent('scraping-state-change', {
-            detail: {
-              isActive: true,
-              progress: { total: 0, current: scrapedDataRef.current.length },
-              latestTweet: tweetData,
-              data: scrapedDataRef.current,
-            },
-          }),
-        );
+        // Notify about the latest tweet only if scraping is still active
+        if (isScrapingActiveRef.current) {
+          window.dispatchEvent(
+            new CustomEvent('scraping-state-change', {
+              detail: {
+                isActive: true,
+                progress: { total: 0, current: scrapedDataRef.current.length },
+                latestTweet: tweetData,
+                data: scrapedDataRef.current,
+              },
+            }),
+          );
+        }
 
         // Dispatch event to notify other components
         window.dispatchEvent(
@@ -294,6 +298,7 @@ export default function TweetIntelligenceButton() {
 
     // Set scraping as active
     setIsScrapingActive(true);
+    isScrapingActiveRef.current = true;
     // Reset options for a fresh run
     includeCommentsRef.current = false;
     primaryAuthorIdRef.current = initialTweet?.userId ? String(initialTweet.userId).toLowerCase() : null;
@@ -866,6 +871,9 @@ export default function TweetIntelligenceButton() {
         }
 
         // Update progress
+        if (!isScrapingActiveRef.current) {
+          return;
+        }
         setScrapingProgress(prev => {
           const newProgress = {
             total: Math.max(prev.total, scrapedDataRef.current.length + 5),
@@ -873,15 +881,17 @@ export default function TweetIntelligenceButton() {
           };
 
           // Notify about progress
-          window.dispatchEvent(
-            new CustomEvent('scraping-state-change', {
-              detail: {
-                isActive: true,
-                progress: newProgress,
-                data: scrapedDataRef.current,
-              },
-            }),
-          );
+          if (isScrapingActiveRef.current) {
+            window.dispatchEvent(
+              new CustomEvent('scraping-state-change', {
+                detail: {
+                  isActive: true,
+                  progress: newProgress,
+                  data: scrapedDataRef.current,
+                },
+              }),
+            );
+          }
 
           return newProgress;
         });
@@ -900,6 +910,7 @@ export default function TweetIntelligenceButton() {
         if (scrollTopBefore === scrollTopAfter || reachedBottom || threadComplete) {
           clearInterval(intervalId);
           setIsScrapingActive(false);
+          isScrapingActiveRef.current = false;
 
           // Final progress update
           window.dispatchEvent(
@@ -1044,6 +1055,7 @@ export default function TweetIntelligenceButton() {
       if (before === getTop() || reachedBottom) {
         clearInterval(intervalId);
         setIsScrapingActive(false);
+        isScrapingActiveRef.current = false;
         window.dispatchEvent(
           new CustomEvent('scraping-state-change', {
             detail: {
