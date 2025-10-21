@@ -1,9 +1,27 @@
 import { createRoot } from 'react-dom/client';
-import App from '@pages/content/ui/app';
+import TwitterApp from '@pages/content/ui/app';
 import refreshOnUpdate from 'virtual:reload-on-update-in-view';
 import injectedStyle from './injected.css?inline';
 import { Toaster } from 'react-hot-toast';
 import Slack from '@pages/content/ui/slack';
+import Reddit from '@pages/content/ui/reddit';
+
+// Platform detection utility
+const getPlatform = (hostname: string): string => {
+  switch (hostname) {
+    case 'app.slack.com':
+      return 'slack';
+    case 'x.com':
+    case 'twitter.com':
+    case 'pro.twitter.com':
+      return 'twitter';
+    case 'www.reddit.com':
+    case 'reddit.com':
+      return 'reddit';
+    default:
+      return 'unknown';
+  }
+};
 
 refreshOnUpdate('pages/content');
 
@@ -112,9 +130,24 @@ shadowRoot.appendChild(styleElement);
  */
 
 setTimeout(() => {
+  const platform = getPlatform(window.location.hostname);
+  
+  const renderPlatformComponent = () => {
+    switch (platform) {
+      case 'slack':
+        return <Slack />;
+      case 'twitter':
+        return <TwitterApp />;
+      case 'reddit':
+        return <Reddit />;
+      default:
+        return <TwitterApp />; // Default fallback
+    }
+  };
+
   createRoot(rootIntoShadow).render(
     <>
-      {window.location.host === 'app.slack.com' ? <Slack /> : <App />}
+      {renderPlatformComponent()}
       <Toaster
         toastOptions={{
           success: {

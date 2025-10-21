@@ -107,7 +107,7 @@ const AiTweetToolbar = ({ dispatch, state, handleGenerateAiTweet, loader }) => {
   );
 };
 
-export default function NewApp() {
+export default function TwitterApp() {
   const [state, dispatch] = useStore();
   const [loader, setLoader] = useState(false);
 
