@@ -195,8 +195,110 @@ const Reddit = () => {
     return commentData;
   }, [extractCommentData]);
 
+  // Function to continuously scroll and scrape comments
+  const scrollAndScrapeComments = useCallback(async (onProgress) => {
+    const allComments = new Map(); // Use Map to avoid duplicates
+    let scrollAttempts = 0;
+    const maxScrollAttempts = 50; // Prevent infinite scrolling
+    let lastCommentCount = 0;
+    let stableCount = 0; // Count how many times comment count stayed the same
+    let shouldStop = false; // Flag to stop scraping
+
+    const scrollToBottom = () => {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'smooth'
+      });
+    };
+
+    const scrapeCurrentComments = () => {
+      const commentElements = document.querySelectorAll('shreddit-comment');
+      let newCommentsFound = 0;
+
+      commentElements.forEach(commentElement => {
+        const depth = parseInt(commentElement.getAttribute('depth') || '0');
+        const thingId = commentElement.getAttribute('thingid');
+        
+        if (thingId && !allComments.has(thingId)) {
+          // Only process top-level comments (depth 0 or 1) to avoid duplicates
+          if (depth <= 1) {
+            const commentData = scrapeNestedComments(commentElement);
+            if (commentData) {
+              allComments.set(thingId, commentData);
+              newCommentsFound++;
+            }
+          }
+        }
+      });
+
+      return newCommentsFound;
+    };
+
+    // Initial scrape
+    scrapeCurrentComments();
+    onProgress?.(allComments.size, 'Initial scraping...', Array.from(allComments.values()));
+
+    // Listen for stop event
+    const handleStopScraping = () => {
+      shouldStop = true;
+    };
+    window.addEventListener('reddit-scraping-stop', handleStopScraping);
+
+    // Start continuous scrolling and scraping
+    const scrollInterval = setInterval(async () => {
+      scrollAttempts++;
+      
+      // Check if we should stop
+      if (scrollAttempts >= maxScrollAttempts || shouldStop) {
+        clearInterval(scrollInterval);
+        window.removeEventListener('reddit-scraping-stop', handleStopScraping);
+        onProgress?.(allComments.size, `Scraping complete! Found ${allComments.size} comments.`, Array.from(allComments.values()));
+        return;
+      }
+
+      // Scroll to bottom
+      scrollToBottom();
+      
+      // Wait a bit for new content to load
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Scrape new comments
+      scrapeCurrentComments();
+      
+      // Check if we're still finding new comments
+      if (allComments.size === lastCommentCount) {
+        stableCount++;
+        if (stableCount >= 3) { // Stop if no new comments for 3 attempts
+          clearInterval(scrollInterval);
+          onProgress?.(allComments.size, `Scraping complete! Found ${allComments.size} comments.`, Array.from(allComments.values()));
+          return;
+        }
+      } else {
+        stableCount = 0; // Reset stable count if we found new comments
+      }
+      
+      lastCommentCount = allComments.size;
+      onProgress?.(allComments.size, `Scraping... Found ${allComments.size} comments so far.`, Array.from(allComments.values()));
+      
+    }, 3000); // Check every 3 seconds
+
+    // Return a promise that resolves when scraping is complete
+    return new Promise((resolve) => {
+      const checkComplete = setInterval(() => {
+        if (scrollAttempts >= maxScrollAttempts || stableCount >= 3 || shouldStop) {
+          clearInterval(checkComplete);
+          window.removeEventListener('reddit-scraping-stop', handleStopScraping);
+          resolve(Array.from(allComments.values()));
+        }
+      }, 1000);
+    });
+  }, [scrapeNestedComments]);
+
   const handleScrapeRedditContent = useCallback(async () => {
     try {
+      // Show dialog immediately when scrape button is clicked
+      window.dispatchEvent(new CustomEvent('show-reddit-viewer'));
+      
       // Extract post content
       const postTitle = document.querySelector('h1[id*="post-title"]')?.textContent || 
                        document.querySelector('[data-testid="post-title"]')?.textContent || '';
@@ -220,19 +322,45 @@ const Reddit = () => {
                           document.querySelector('[data-testid="comments-count"]')?.textContent ||
                           '0';
 
-      // Scrape all comments with nested hierarchy
-      const allComments = [];
-      const commentElements = document.querySelectorAll('shreddit-comment');
+      // Show initial progress
+      toast.loading('Starting infinite scroll scraping...', { id: 'scraping-progress' });
       
-      commentElements.forEach(commentElement => {
-        // Only process top-level comments (depth 0 or 1)
-        const depth = parseInt(commentElement.getAttribute('depth') || '0');
-        if (depth <= 1) {
-          const commentData = scrapeNestedComments(commentElement);
-          if (commentData) {
-            allComments.push(commentData);
-          }
+      // Dispatch initial post data immediately
+      window.dispatchEvent(new CustomEvent('reddit-scraping-progress', {
+        detail: { 
+          count: 0, 
+          message: 'Starting to scrape comments...',
+          title: postTitle,
+          content: postContent,
+          author: postAuthor,
+          subreddit: subreddit,
+          score: postScore,
+          totalComments: commentCount,
+          commentsData: []
         }
+      }));
+      
+      // Dispatch scraping start event
+      window.dispatchEvent(new CustomEvent('reddit-scraping-start'));
+
+      // Start continuous scraping with progress updates
+      const allComments = await scrollAndScrapeComments((count, message, partialComments) => {
+        toast.loading(`${message} (${count} comments)`, { id: 'scraping-progress' });
+        
+        // Dispatch progress event for the viewer with partial data
+        window.dispatchEvent(new CustomEvent('reddit-scraping-progress', {
+          detail: { 
+            count, 
+            message,
+            title: postTitle,
+            content: postContent,
+            author: postAuthor,
+            subreddit: subreddit,
+            score: postScore,
+            totalComments: commentCount,
+            commentsData: partialComments || []
+          }
+        }));
       });
 
       const scrapedData = {
@@ -245,7 +373,7 @@ const Reddit = () => {
         url: window.location.href,
         timestamp: new Date().toISOString(),
         commentsData: allComments,
-        totalComments: allComments.length
+        totalComments: Array.isArray(allComments) ? allComments.length : 0
       };
 
       // Store scraped data
@@ -259,12 +387,18 @@ const Reddit = () => {
         detail: scrapedData
       }));
 
-      toast.success(`Reddit content scraped successfully! Found ${allComments.length} comments.`);
+      // Dismiss loading toast and show success
+      toast.dismiss('scraping-progress');
+      toast.success(`Reddit content scraped successfully! Found ${Array.isArray(allComments) ? allComments.length : 0} comments.`);
+      
+      // Dispatch scraping stop event
+      window.dispatchEvent(new CustomEvent('reddit-scraping-stop'));
     } catch (error) {
       console.error('Error scraping Reddit content:', error);
+      toast.dismiss('scraping-progress');
       toast.error('Failed to scrape Reddit content');
     }
-  }, [scrapeNestedComments]);
+  }, [scrollAndScrapeComments]);
 
   const handleGenerateAiPost = useCallback(
     async event => {

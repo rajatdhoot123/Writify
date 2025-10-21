@@ -1,7 +1,9 @@
+/* eslint-disable react/prop-types */
+/* eslint-disable react/destructuring-assignment */
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@root/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from '@root/components/ui/card';
-import { Download, X, CheckCircle2, MessageCircle, ExternalLink, ChevronDown, ChevronRight, User, MessageSquare, ThumbsUp } from 'lucide-react';
+import { Download, X, CheckCircle2, MessageCircle, ExternalLink, ChevronDown, ChevronRight, User, MessageSquare, ThumbsUp, Loader2, Square } from 'lucide-react';
 import { downloadFile } from './Scrapper';
 import toast from 'react-hot-toast';
 
@@ -10,12 +12,16 @@ function useRedditContentManager() {
   const [scrapedContent, setScrapedContent] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
   const [expandedComments, setExpandedComments] = useState(new Set());
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapingProgress, setScrapingProgress] = useState({ count: 0, message: '' });
 
 
   // Reset content
   const resetViewer = useCallback(() => {
     setScrapedContent(null);
     setExpandedComments(new Set());
+    setIsScraping(false);
+    setScrapingProgress({ count: 0, message: '' });
   }, []);
 
   // Toggle comment expansion
@@ -50,6 +56,10 @@ function useRedditContentManager() {
     exportData,
     expandedComments,
     toggleComment,
+    isScraping,
+    setIsScraping,
+    scrapingProgress,
+    setScrapingProgress,
   };
 }
 
@@ -58,6 +68,8 @@ function useRedditContentEvents({
   setScrapedContent,
   setIsVisible,
   resetViewer,
+  setIsScraping,
+  setScrapingProgress,
 }) {
   useEffect(() => {
     // Handle Reddit content scraped
@@ -65,6 +77,26 @@ function useRedditContentEvents({
       if (!event.detail) return;
       setScrapedContent(event.detail);
       setIsVisible(true);
+      setIsScraping(false);
+    };
+
+    // Handle scraping progress
+    const handleScrapingProgress = event => {
+      if (event.detail) {
+        setScrapingProgress(event.detail);
+        setIsScraping(true);
+      }
+    };
+
+    // Handle scraping start
+    const handleScrapingStart = () => {
+      setIsScraping(true);
+      setScrapingProgress({ count: 0, message: 'Starting...' });
+    };
+
+    // Handle scraping stop
+    const handleScrapingStop = () => {
+      setIsScraping(false);
     };
 
     // Handle show/hide events
@@ -77,6 +109,9 @@ function useRedditContentEvents({
 
     // Register event listeners
     window.addEventListener('reddit-content-scraped', handleRedditContentScraped);
+    window.addEventListener('reddit-scraping-progress', handleScrapingProgress);
+    window.addEventListener('reddit-scraping-start', handleScrapingStart);
+    window.addEventListener('reddit-scraping-stop', handleScrapingStop);
     window.addEventListener('show-reddit-viewer', handleShow);
     window.addEventListener('hide-reddit-viewer', handleHide);
     window.addEventListener('reset-reddit-viewer', handleReset);
@@ -84,14 +119,18 @@ function useRedditContentEvents({
     // Cleanup event listeners
     return () => {
       window.removeEventListener('reddit-content-scraped', handleRedditContentScraped);
+      window.removeEventListener('reddit-scraping-progress', handleScrapingProgress);
+      window.removeEventListener('reddit-scraping-start', handleScrapingStart);
+      window.removeEventListener('reddit-scraping-stop', handleScrapingStop);
       window.removeEventListener('show-reddit-viewer', handleShow);
       window.removeEventListener('hide-reddit-viewer', handleHide);
       window.removeEventListener('reset-reddit-viewer', handleReset);
     };
-  }, [setScrapedContent, setIsVisible, resetViewer]);
+  }, [setScrapedContent, setIsVisible, resetViewer, setIsScraping, setScrapingProgress]);
 }
 
 // Component to render individual comment
+// eslint-disable-next-line react/prop-types
 function CommentItem({ comment, depth = 0, expandedComments, toggleComment }) {
   const isExpanded = expandedComments.has(comment.thingId);
   const hasChildren = comment.children && comment.children.length > 0;
@@ -174,6 +213,7 @@ function CommentItem({ comment, depth = 0, expandedComments, toggleComment }) {
 }
 
 // Component to render comments section
+// eslint-disable-next-line react/prop-types
 function CommentsSection({ comments, expandedComments, toggleComment }) {
   if (!comments || comments.length === 0) {
     return (
@@ -209,6 +249,10 @@ export default function RedditContentViewer() {
     exportData,
     expandedComments,
     toggleComment,
+    isScraping,
+    setIsScraping,
+    scrapingProgress,
+    setScrapingProgress,
   } = useRedditContentManager();
 
   // Register event listeners
@@ -216,6 +260,8 @@ export default function RedditContentViewer() {
     setScrapedContent,
     setIsVisible,
     resetViewer,
+    setIsScraping,
+    setScrapingProgress,
   });
 
   // Hide viewer if not visible
@@ -324,8 +370,19 @@ export default function RedditContentViewer() {
               </div>
               <CardDescription className="text-base">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                  {scrapedContent ? 'Reddit post content successfully scraped' : 'No content available'}
+                  {isScraping ? (
+                    <>
+                      <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                      <span className="text-blue-600">
+                        {scrapingProgress.message} ({scrapingProgress.count} comments)
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      {scrapedContent ? 'Reddit post content successfully scraped' : 'No content available'}
+                    </>
+                  )}
                 </div>
               </CardDescription>
             </div>
@@ -344,6 +401,76 @@ export default function RedditContentViewer() {
           <div className="h-[70vh] overflow-y-auto pr-2">
             {scrapedContent ? (
               renderRedditContent(scrapedContent)
+            ) : isScraping ? (
+              <div className="space-y-6">
+                {/* Post Header - Show immediately */}
+                <div className="bg-gradient-to-r from-orange-500/10 to-orange-600/5 border border-orange-200/50 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                          r/{scrapingProgress.subreddit || 'Loading...'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">•</span>
+                        <span className="text-sm text-muted-foreground">
+                          u/{scrapingProgress.author || 'Loading...'}
+                        </span>
+                      </div>
+                      <h2 className="text-lg font-semibold text-foreground mb-2">
+                        {scrapingProgress.title || 'Loading post title...'}
+                      </h2>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Score: {scrapingProgress.score || 'Loading...'}</span>
+                      <span>•</span>
+                      <span>{scrapingProgress.totalComments || '0'} comments</span>
+                    </div>
+                  </div>
+                  
+                  {/* Post Content */}
+                  {scrapingProgress.content && (
+                    <div className="prose prose-sm max-w-none text-foreground">
+                      <p className="whitespace-pre-wrap leading-relaxed">
+                        {scrapingProgress.content}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Progress Indicator */}
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-orange-200/30">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>Scraping in progress...</span>
+                      <span>•</span>
+                      <span>{scrapingProgress.count} comments found</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                      <span className="text-xs text-blue-600">Loading comments...</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comments Section - Show as they're scraped */}
+                {scrapingProgress.commentsData && scrapingProgress.commentsData.length > 0 && (
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <MessageSquare className="w-5 h-5 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-foreground">
+                        Comments ({scrapingProgress.commentsData.length})
+                      </h3>
+                      <div className="flex items-center gap-1 text-sm text-blue-600">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Loading more...</span>
+                      </div>
+                    </div>
+                    <CommentsSection 
+                      comments={scrapingProgress.commentsData}
+                      expandedComments={expandedComments}
+                      toggleComment={toggleComment}
+                    />
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center space-y-4 py-8">
@@ -367,13 +494,26 @@ export default function RedditContentViewer() {
         {/* Footer Section */}
         <CardFooter className="flex flex-col gap-3 border-t border-border/50 bg-muted/30 pt-4 pb-4 px-6">
           <div className="flex gap-2 w-full">
-            <Button
-              onClick={exportData}
-              disabled={!scrapedContent}
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium transition-all duration-200 h-10 rounded-lg">
-              <Download className="w-4 h-4 mr-2" />
-              Export Content
-            </Button>
+            {isScraping ? (
+              <Button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('reddit-scraping-stop'));
+                  setIsScraping(false);
+                }}
+                variant="destructive"
+                className="flex-1 font-medium transition-all duration-200 h-10 rounded-lg">
+                <Square className="w-4 h-4 mr-2" />
+                Stop Scraping
+              </Button>
+            ) : (
+              <Button
+                onClick={exportData}
+                disabled={!scrapedContent}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium transition-all duration-200 h-10 rounded-lg">
+                <Download className="w-4 h-4 mr-2" />
+                Export Content
+              </Button>
+            )}
             <Button
               onClick={() => setIsVisible(false)}
               variant="outline"
